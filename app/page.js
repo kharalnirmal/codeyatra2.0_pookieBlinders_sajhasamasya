@@ -62,16 +62,16 @@ function SkeletonCard() {
   return (
     <div className="rounded-3xl overflow-hidden bg-white/60 border border-white/80 p-4 space-y-3">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 animate-pulse shrink-0" />
+        <div className="w-9 h-9 rounded-full bg-linear-to-r from-gray-100 to-gray-200 animate-pulse shrink-0" />
         <div className="flex-1 space-y-1.5">
-          <div className="h-3 w-28 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 animate-pulse" />
-          <div className="h-2.5 w-16 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 animate-pulse" />
+          <div className="h-3 w-28 rounded-full bg-linear-to-r from-gray-100 to-gray-200 animate-pulse" />
+          <div className="h-2.5 w-16 rounded-full bg-linear-to-r from-gray-100 to-gray-200 animate-pulse" />
         </div>
       </div>
-      <div className="h-32 rounded-2xl bg-gradient-to-r from-gray-100 to-gray-200 animate-pulse" />
+      <div className="h-32 rounded-2xl bg-linear-to-r from-gray-100 to-gray-200 animate-pulse" />
       <div className="space-y-2">
-        <div className="h-3 w-3/4 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 animate-pulse" />
-        <div className="h-2.5 w-1/2 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 animate-pulse" />
+        <div className="h-3 w-3/4 rounded-full bg-linear-to-r from-gray-100 to-gray-200 animate-pulse" />
+        <div className="h-2.5 w-1/2 rounded-full bg-linear-to-r from-gray-100 to-gray-200 animate-pulse" />
       </div>
     </div>
   );
@@ -181,11 +181,11 @@ export default function Home() {
       >
         {/* ── AMBIENT BACKGROUND ── */}
         <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
-          <Orb className="absolute -top-48 -left-32 w-[600px] h-[500px] bg-green-200/35" />
-          <Orb className="absolute top-1/2 -right-48 w-[480px] h-[480px] bg-emerald-200/25"
+          <Orb className="absolute -top-48 -left-32 w-150 h-125 bg-green-200/35" />
+          <Orb className="absolute top-1/2 -right-48 w-120 h-120 bg-emerald-200/25"
             style={{ animationDelay: "-3s", animationDirection: "alternate-reverse" }}
           />
-          <Orb className="absolute bottom-0 left-1/4 w-[400px] h-[350px] bg-teal-100/30"
+          <Orb className="absolute bottom-0 left-1/4 w-100 h-87.5 bg-teal-100/30"
             style={{ animationDelay: "-5s" }}
           />
           {/* Subtle dot grid */}
