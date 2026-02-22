@@ -54,7 +54,7 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { title, description, category, targetGroup, photo, location } = body;
+    const { title, description, category, targetGroup, photo, location, district } = body;
 
     if (!title || !description || !category || !targetGroup) {
       return NextResponse.json(
@@ -94,6 +94,7 @@ export async function POST(req) {
       targetGroup,
       photo: photoUrl,
       deadline,
+      district: district || "",
       ...(location && {
         location: {
           address: location.address || "",

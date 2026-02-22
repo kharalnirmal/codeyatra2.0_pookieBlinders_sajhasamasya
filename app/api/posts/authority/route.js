@@ -31,6 +31,11 @@ export async function GET(req) {
       query.category = { $in: user.area.categories };
     }
 
+    // Apply district filter
+    if (user.area?.district) {
+      query.district = user.area.district;
+    }
+
     if (statusFilter && statusFilter !== "all") {
       query.samasyaStatus = statusFilter;
     }

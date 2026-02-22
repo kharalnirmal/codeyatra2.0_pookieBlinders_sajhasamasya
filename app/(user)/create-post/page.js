@@ -6,6 +6,7 @@ import { useUser } from "@clerk/nextjs";
 import { Camera, RefreshCw, X, Send, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
+import { DISTRICTS } from "@/lib/constants";
 
 // Load Leaflet picker client-side only (no SSR)
 const LocationPicker = dynamic(
@@ -61,6 +62,7 @@ export default function CreatePostPage() {
   const [category, setCategory] = useState("");
   const [targetGroup, setTargetGroup] = useState("authority");
   const [location, setLocation] = useState(null); // { lat, lng, address }
+  const [district, setDistrict] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // ── KEY FIX: assign stream AFTER video element mounts ──
@@ -127,7 +129,7 @@ export default function CreatePostPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isSignedIn) { router.push("/sign-in"); return; }
-    if (!title.trim() || !description.trim() || !category) {
+    if (!title.trim() || !description.trim() || !category || !district) {
       toast.error("Please fill in all required fields.");
       return;
     }
@@ -144,6 +146,7 @@ export default function CreatePostPage() {
           targetGroup,
           photo: capturedPhoto || "",
           location: location || null,
+          district,
         }),
       });
 
@@ -281,6 +284,24 @@ export default function CreatePostPage() {
             <option value="">Select a category</option>
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* ── District ── */}
+        <div>
+          <label className="block mb-1 font-medium text-gray-700 text-sm">
+            District <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+            required
+            className="bg-white px-3 py-2.5 border border-gray-300 focus:border-primary rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 w-full text-sm transition"
+          >
+            <option value="">Select a district</option>
+            {DISTRICTS.map((d) => (
+              <option key={d} value={d}>{d}</option>
             ))}
           </select>
         </div>

@@ -22,32 +22,7 @@ import {
   Shield,
 } from "lucide-react";
 import { toast } from "sonner";
-
-const CATEGORIES = [
-  "road",
-  "water",
-  "electricity",
-  "garbage",
-  "safety",
-  "other",
-];
-const DISTRICTS = [
-  "Kathmandu",
-  "Lalitpur",
-  "Bhaktapur",
-  "Pokhara",
-  "Butwal",
-  "Dharan",
-  "Biratnagar",
-  "Birgunj",
-  "Hetauda",
-  "Bharatpur",
-  "Nepalgunj",
-  "Dhangadhi",
-  "Janakpur",
-  "Itahari",
-  "Other",
-];
+import { DISTRICTS, CATEGORIES } from "@/lib/constants";
 
 const CATEGORY_COLORS = {
   road: "bg-orange-100 text-orange-700",
@@ -108,7 +83,7 @@ export default function AuthorityDashboard() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [areaOpen, setAreaOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [selectedDistricts, setSelectedDistricts] = useState([]);
+  const [selectedDistrict, setSelectedDistrict] = useState("");
   const [savingArea, setSavingArea] = useState(false);
   const [responseModal, setResponseModal] = useState(null); // { postId, currentStatus }
   const [responseText, setResponseText] = useState("");
@@ -123,7 +98,7 @@ export default function AuthorityDashboard() {
         setData(json);
         if (json.authority?.area) {
           setSelectedCategories(json.authority.area.categories || []);
-          setSelectedDistricts(json.authority.area.districts || []);
+          setSelectedDistrict(json.authority.area.district || "");
         }
       } catch (err) {
         toast.error(err.message || "Failed to load dashboard");
@@ -157,7 +132,7 @@ export default function AuthorityDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           categories: selectedCategories,
-          districts: selectedDistricts,
+          district: selectedDistrict,
         }),
       });
       const json = await res.json();
@@ -201,11 +176,6 @@ export default function AuthorityDashboard() {
   const toggleCategory = (c) =>
     setSelectedCategories((prev) =>
       prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
-    );
-
-  const toggleDistrict = (d) =>
-    setSelectedDistricts((prev) =>
-      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
     );
 
   if (!isLoaded || loading) {
@@ -292,8 +262,8 @@ export default function AuthorityDashboard() {
             </button>
           </div>
           <p className="mb-3 text-gray-500 text-xs">
-            Select the categories and districts you are responsible for. Only
-            posts from these areas will appear in your dashboard.
+            Select the categories and your district. Only
+            posts from your area will appear in your dashboard.
           </p>
 
           <div className="mb-3">
@@ -319,23 +289,18 @@ export default function AuthorityDashboard() {
 
           <div className="mb-4">
             <p className="mb-1.5 font-medium text-gray-700 text-xs">
-              Districts
+              District
             </p>
-            <div className="flex flex-wrap gap-1.5">
+            <select
+              value={selectedDistrict}
+              onChange={(e) => setSelectedDistrict(e.target.value)}
+              className="bg-white px-3 py-2 border border-gray-300 focus:border-blue-500 rounded-xl focus:outline-none w-full text-sm"
+            >
+              <option value="">Select a district</option>
               {DISTRICTS.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => toggleDistrict(d)}
-                  className={`px-3 py-1 rounded-full text-xs border transition ${
-                    selectedDistricts.includes(d)
-                      ? "bg-blue-600 border-blue-600 text-white"
-                      : "bg-gray-50 border-gray-300 text-gray-600"
-                  }`}
-                >
-                  {d}
-                </button>
+                <option key={d} value={d}>{d}</option>
               ))}
-            </div>
+            </select>
           </div>
 
           <button
@@ -443,8 +408,8 @@ export default function AuthorityDashboard() {
                 {c}
               </span>
             ))}
-            {selectedDistricts.length > 0 && (
-              <>· {selectedDistricts.join(", ")}</>
+            {selectedDistrict && (
+              <>· {selectedDistrict}</>
             )}
           </div>
         )}

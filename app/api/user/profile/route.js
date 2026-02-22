@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import User from "@/lib/models/User";
 import Post from "@/lib/models/Post";
-import { BADGE_DEFS, computeNewBadges } from "@/lib/badges";
+import { BADGE_DEFS, computeNewBadges, getBadgeDefsForRole } from "@/lib/badges";
 
 // GET /api/user/profile – current user's full profile with stats, badges, recent posts
 export async function GET() {
@@ -51,7 +51,8 @@ export async function GET() {
 
     // Build full badge list (earned + locked)
     const earnedSet = new Set(user.badges || []);
-    const allBadges = BADGE_DEFS.map((b) => ({
+    const badgeDefs = getBadgeDefsForRole(user.role);
+    const allBadges = badgeDefs.map((b) => ({
       ...b,
       earned: earnedSet.has(b.id),
       check: undefined, // don't expose function to client

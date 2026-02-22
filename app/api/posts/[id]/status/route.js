@@ -65,6 +65,11 @@ export async function PATCH(req, { params }) {
     };
     if (response) update.authorityResponse = response;
 
+    // Set TTL for auto-deletion when marking as completed
+    if (status === "completed") {
+      update.deleteAt = new Date(Date.now() + 60000); // 1 minute from now
+    }
+
     const updatedPost = await Post.findByIdAndUpdate(id, update, {
       new: true,
     }).populate("author", "name avatar clerkId role");
@@ -84,6 +89,15 @@ export async function PATCH(req, { params }) {
         $inc: { totalResolved: 1, issuesSolved: 1, points: 15 },
         rating: parseFloat(newRating.toFixed(1)),
       });
+
+      // Award badges for the authority
+      const refreshedAuthority = await User.findById(authorityUser._id);
+      const authorityNewBadges = computeNewBadges(refreshedAuthority);
+      if (authorityNewBadges.length > 0) {
+        await User.findByIdAndUpdate(authorityUser._id, {
+          $addToSet: { badges: { $each: authorityNewBadges } },
+        });
+      }
 
       // Update citizien's issuesSolved
       if (post.author) {

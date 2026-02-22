@@ -18,12 +18,12 @@ export async function PATCH(req) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { districts, categories } = await req.json();
+    const { district, categories } = await req.json();
 
     const updated = await User.findByIdAndUpdate(
       user._id,
       {
-        "area.districts": Array.isArray(districts) ? districts : [],
+        "area.district": typeof district === "string" ? district : "",
         "area.categories": Array.isArray(categories) ? categories : [],
       },
       { new: true },
