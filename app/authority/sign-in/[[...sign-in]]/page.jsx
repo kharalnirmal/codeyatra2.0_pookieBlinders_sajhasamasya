@@ -22,7 +22,7 @@ export default function AuthoritySignInPage() {
         <p className="mb-6 text-gray-500 text-sm text-center">
           SajhaSamasya — Authority Access
         </p>
-
+        {/* //registered query param is set when user is redirected from sign-up page after successful registration */}
         {registered && (
           <div className="bg-green-50 mb-4 px-4 py-3 border border-green-200 rounded-xl text-green-700 text-sm text-center">
             ✅ Account created! Sign in to access your dashboard.
