@@ -315,7 +315,7 @@ export default function Navbar() {
                       size={20}
                       strokeWidth={1.8}
                       style={{ color: isAuthority ? "#6366f1" : "#16a34a" }}
-                      className="group-hover:rotate-[20deg] transition-transform duration-300"
+                      className="group-hover:rotate-20 transition-transform duration-300"
                     />
                   </span>
                   <span
