@@ -1,11 +1,21 @@
-import connectDB from "@/lib/db";
-import Image from "next/image";
+"use client";
+import { useState } from "react";
+import Loader from "@/components/ui/Loader";
 
 export default function Home() {
-  connectDB();
+  const [loading, setLoading] = useState(true);
+
   return (
-    <div>
-      <h1 className="font-bold text-3xl underline">Hello world!</h1>
-    </div>
+    <>
+      {loading && <Loader onComplete={() => setLoading(false)} />}
+      <main
+        style={{
+          opacity: loading ? 0 : 1,
+          transition: "opacity 0.5s ease",
+        }}
+      >
+        <h1>Home Page</h1>
+      </main>
+    </>
   );
-}
+} 
