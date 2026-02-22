@@ -18,13 +18,27 @@ export default function AuthoritySignUpPage() {
   const [loading, setLoading] = useState(false);
 
   // Step 1: Verify secret code
-  const handleSecretSubmit = (e) => {
+  const handleSecretSubmit = async (e) => {
     e.preventDefault();
-    if (secretCode === process.env.NEXT_PUBLIC_AUTHORITY_SECRET_CODE) {
+    setLoading(true);
+    setSecretError("");
+
+    try {
+      const response = await fetch("/api/auth/verify-authority-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secretCode }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setSecretError(data?.error || "Invalid authority code.");
+        return;
+      }
+
       setStep("details");
-      setSecretError("");
-    } else {
-      setSecretError("Invalid authority code. Please contact admin.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -59,13 +73,19 @@ export default function AuthoritySignUpPage() {
         code: otp,
       });
       if (result.status === "complete") {
-        // Set authority role in Clerk public metadata via our API
-        await fetch("/api/auth/set-authority-role", {
+        await setActive({ session: result.createdSessionId });
+
+        const roleResponse = await fetch("/api/auth/set-authority-role", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: result.createdUserId }),
+          body: JSON.stringify({ secretCode }),
         });
-        await setActive({ session: result.createdSessionId });
+
+        if (!roleResponse.ok) {
+          const roleData = await roleResponse.json();
+          throw new Error(roleData?.error || "Failed to assign authority role");
+        }
+
         router.push("/authority/dashboard");
       }
     } catch (err) {
@@ -104,9 +124,10 @@ export default function AuthoritySignUpPage() {
             )}
             <button
               type="submit"
+              disabled={loading}
               className="bg-blue-600 hover:bg-blue-700 py-2 rounded-lg w-full text-white transition"
             >
-              Verify Code
+              {loading ? "Verifying..." : "Verify Code"}
             </button>
           </form>
         )}
