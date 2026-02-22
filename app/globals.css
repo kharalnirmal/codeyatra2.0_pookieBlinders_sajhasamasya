@@ -6,9 +6,5 @@
 @theme {
   --color-primary: #e8000c;
   /* pink */
-  --color-secondary: #;
-  /* blue */
-  --color-tertiary: #0cb9c1;
-  /* orange */
-  --color-quaternary: #f48924;
+  --color-secondary: #1d398f;
 }

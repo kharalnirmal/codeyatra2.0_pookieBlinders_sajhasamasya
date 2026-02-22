@@ -3,6 +3,7 @@ import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkProvider } from "@clerk/nextjs";
 import Navbar from "@/components/shared/Navbar";
+import { Toaster } from "sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,6 +30,7 @@ export default function RootLayout({ children }) {
           <TooltipProvider>
             <Navbar />
             <main className="pt-0 pb-20">{children}</main>
+            <Toaster richColors position="top-center" />
           </TooltipProvider>
         </body>
       </html>

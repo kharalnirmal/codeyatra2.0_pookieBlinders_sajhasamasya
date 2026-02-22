@@ -26,6 +26,15 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL("/authority/dashboard", req.url));
   }
 
+  const isProtectedCitizenRoute =
+    pathname.startsWith("/create-post") || pathname.startsWith("/profile");
+
+  if (isProtectedCitizenRoute && !userId) {
+    const signInUrl = new URL("/sign-in", req.url);
+    signInUrl.searchParams.set("redirect_url", pathname);
+    return NextResponse.redirect(signInUrl);
+  }
+
   if (isAuthorityProtectedRoute && !userId) {
     const signInUrl = new URL("/authority/sign-in", req.url);
     signInUrl.searchParams.set("redirect_url", pathname);
