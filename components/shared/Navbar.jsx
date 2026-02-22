@@ -2,21 +2,69 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Home, PlusCircle, User } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Home, PlusCircle, User, LayoutDashboard, Rss } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 
 export default function Navbar() {
   const [lang, setLang] = useState("en"); // "en" or "ne"
-  const { isSignedIn } = useUser();
+  const { user } = useUser();
+  const pathname = usePathname();
+
+  const isAuthority = user?.publicMetadata?.role === "authority";
 
   const toggleLang = () => setLang((prev) => (prev === "en" ? "ne" : "en"));
+
+  const citizenTabs = [
+    {
+      href: "/",
+      icon: Home,
+      label: lang === "en" ? "Home" : "गृह",
+    },
+    {
+      href: "/create-post",
+      icon: PlusCircle,
+      label: lang === "en" ? "Post" : "पोस्ट",
+      isFab: true,
+    },
+    {
+      href: "/profile",
+      icon: User,
+      label: lang === "en" ? "Profile" : "प्रोफाइल",
+    },
+  ];
+
+  const authorityTabs = [
+    {
+      href: "/authority/dashboard",
+      icon: LayoutDashboard,
+      label: lang === "en" ? "Dashboard" : "ड्यास",
+    },
+    {
+      href: "/",
+      icon: Rss,
+      label: lang === "en" ? "Feed" : "फिड",
+    },
+    {
+      href: "/profile",
+      icon: User,
+      label: lang === "en" ? "Profile" : "प्रोफाइल",
+    },
+  ];
+
+  const tabs = isAuthority ? authorityTabs : citizenTabs;
+  const activeColor = isAuthority ? "text-secondary" : "text-primary";
+  const fabColor = "bg-primary hover:bg-red-700";
 
   return (
     <>
       {/* ── Top Navbar ── */}
       <header className="top-0 z-50 sticky flex justify-between items-center bg-white shadow-sm px-4 py-3 border-b">
-        <Link href="/" className="flex items-center gap-2">
+        <Link
+          href={isAuthority ? "/authority/dashboard" : "/"}
+          className="flex items-center gap-2"
+        >
           <Image
             src="/logo.png"
             alt="SajhaSamasya Logo"
@@ -29,45 +77,59 @@ export default function Navbar() {
           </h1>
         </Link>
 
-        <button
-          onClick={toggleLang}
-          className="bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-full font-medium text-gray-700 text-xs transition"
-          aria-label="Toggle language"
-        >
-          {lang === "en" ? "नेपाली" : "English"}
-        </button>
+        <div className="flex items-center gap-2">
+          {isAuthority && (
+            <span className="bg-secondary/10 px-2 py-0.5 rounded-full font-medium text-secondary text-xs">
+              Authority
+            </span>
+          )}
+          <button
+            onClick={toggleLang}
+            className="bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-full font-medium text-gray-700 text-xs transition"
+            aria-label="Toggle language"
+          >
+            {lang === "en" ? "नेपाली" : "English"}
+          </button>
+        </div>
       </header>
 
-      {/* ── Bottom Tab Bar (Instagram-inspired) ── */}
+      {/* ── Bottom Tab Bar ── */}
       <nav className="right-0 bottom-0 left-0 z-50 fixed pb-[env(safe-area-inset-bottom,8px)] flex justify-around items-center bg-white pt-2 border-t">
-        {/* Home */}
-        <Link
-          href="/"
-          className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-green-700 transition"
-        >
-          <Home className="w-6 h-6" />
-          <span className="text-[10px]">{lang === "en" ? "Home" : "गृह"}</span>
-        </Link>
+        {tabs.map((tab) => {
+          const isActive =
+            tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+          const Icon = tab.icon;
 
-        {/* Create Post – big center button */}
-        <Link
-          href={isSignedIn ? "/create-post" : "/sign-in"}
-          className="flex justify-center items-center bg-green-600 hover:bg-green-700 shadow-lg -mt-6 rounded-full w-14 h-14 text-white transition"
-          aria-label="Create Post"
-        >
-          <PlusCircle className="w-8 h-8" />
-        </Link>
+          if (tab.isFab) {
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`flex justify-center items-center ${fabColor} shadow-lg -mt-6 rounded-full w-14 h-14 text-white transition`}
+                aria-label={tab.label}
+              >
+                <Icon className="w-8 h-8" />
+              </Link>
+            );
+          }
 
-        {/* Profile */}
-        <Link
-          href={isSignedIn ? "/profile" : "/sign-in"}
-          className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-green-700 transition"
-        >
-          <User className="w-6 h-6" />
-          <span className="text-[10px]">
-            {lang === "en" ? "Profile" : "प्रोफाइल"}
-          </span>
-        </Link>
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={`flex flex-col items-center gap-0.5 transition ${
+                isActive
+                  ? activeColor
+                  : isAuthority
+                    ? "text-gray-500 hover:text-secondary"
+                    : "text-gray-500 hover:text-primary"
+              }`}
+            >
+              <Icon className="w-6 h-6" />
+              <span className="text-[10px]">{tab.label}</span>
+            </Link>
+          );
+        })}
       </nav>
     </>
   );

@@ -3,14 +3,8 @@ import { NextResponse } from "next/server";
 
 export async function POST(req) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await req.json();
-    const { secretCode } = body || {};
+    const { secretCode, userId: bodyUserId } = body || {};
 
     if (!secretCode) {
       return NextResponse.json(
@@ -33,18 +27,42 @@ export async function POST(req) {
       );
     }
 
+    // Resolve userId: prefer explicit body param (upgrade page),
+    // fall back to session token in Authorization header (sign-up flow after setActive).
+    let userId = bodyUserId;
+    if (!userId) {
+      const { userId: sessionUserId } = await auth();
+      userId = sessionUserId;
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Could not identify user. Please sign in and try again." },
+        { status: 401 },
+      );
+    }
+
     const client = await clerkClient();
     await client.users.updateUserMetadata(userId, {
-      publicMetadata: {
-        role: "authority",
-      },
+      publicMetadata: { role: "authority" },
     });
 
-    return NextResponse.json({ ok: true });
+    // Verify the update actually took effect
+    const updated = await client.users.getUser(userId);
+    const confirmedRole = updated.publicMetadata?.role;
+    if (confirmedRole !== "authority") {
+      return NextResponse.json(
+        { error: "Role update failed to persist in Clerk." },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, userId, role: confirmedRole });
   } catch (error) {
+    console.error("set-authority-role error:", error);
     return NextResponse.json(
       {
-        error: error?.errors?.[0]?.message || "Failed to set authority role",
+        error: error?.errors?.[0]?.message || error?.message || "Failed to set authority role",
       },
       { status: 500 },
     );
