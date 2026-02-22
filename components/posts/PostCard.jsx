@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
+import { useUser } from "@clerk/nextjs";
 import {
   MapPin,
   Clock,
@@ -8,6 +10,10 @@ import {
   Users,
   CheckCircle,
   Loader2,
+  MessageSquare,
+  Send,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 const CATEGORY_COLORS = {
@@ -24,16 +30,19 @@ const STATUS_INFO = {
     label: "Pending",
     icon: Clock,
     color: "text-yellow-600 bg-yellow-50",
+    spin: false,
   },
   in_progress: {
     label: "In Progress",
     icon: Loader2,
     color: "text-blue-600 bg-blue-50",
+    spin: true,
   },
   completed: {
     label: "Resolved",
     icon: CheckCircle,
     color: "text-green-600 bg-green-50",
+    spin: false,
   },
 };
 
@@ -48,6 +57,82 @@ function timeAgo(dateStr) {
 }
 
 export default function PostCard({ post }) {
+  const { isSignedIn } = useUser();
+
+  // Like state (optimistic)
+  const [likeCount, setLikeCount] = useState(post.likes?.length || 0);
+  const [liked, setLiked] = useState(false);
+  const [liking, setLiking] = useState(false);
+
+  // Comment state
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  const handleLike = async () => {
+    if (!isSignedIn || liking) return;
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikeCount((c) => (wasLiked ? c - 1 : c + 1));
+    setLiking(true);
+    try {
+      const res = await fetch(`/api/posts/${post._id}/like`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error();
+      setLiked(data.liked);
+      setLikeCount(data.count);
+    } catch {
+      setLiked(wasLiked);
+      setLikeCount((c) => (wasLiked ? c + 1 : c - 1));
+    } finally {
+      setLiking(false);
+    }
+  };
+
+  const loadComments = async () => {
+    if (commentsLoaded) return;
+    setLoadingComments(true);
+    try {
+      const res = await fetch(`/api/posts/${post._id}/comments`);
+      const data = await res.json();
+      setComments(data.comments || []);
+      setCommentsLoaded(true);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const toggleComments = () => {
+    const next = !commentOpen;
+    setCommentOpen(next);
+    if (next && !commentsLoaded) loadComments();
+  };
+
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim() || !isSignedIn || submittingComment) return;
+    setSubmittingComment(true);
+    try {
+      const res = await fetch(`/api/posts/${post._id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: commentText.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok && data.comment) {
+        setComments((prev) => [...prev, data.comment]);
+        setCommentText("");
+      }
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
   const status = STATUS_INFO[post.samasyaStatus] || STATUS_INFO.pending;
   const StatusIcon = status.icon;
   const authorName = post.author?.name || "Anonymous";
@@ -55,7 +140,7 @@ export default function PostCard({ post }) {
   const categoryClass = CATEGORY_COLORS[post.category] || CATEGORY_COLORS.other;
 
   return (
-    <article className="bg-white shadow-sm rounded-2xl overflow-hidden">
+    <article className="bg-white shadow-sm rounded-2xl overflow-hidden border border-gray-100">
       {/* Photo */}
       {post.photo && (
         <div
@@ -76,7 +161,6 @@ export default function PostCard({ post }) {
         {/* Header row */}
         <div className="flex justify-between items-start gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            {/* Avatar */}
             {authorAvatar ? (
               <Image
                 src={authorAvatar}
@@ -102,7 +186,9 @@ export default function PostCard({ post }) {
           <span
             className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${status.color}`}
           >
-            <StatusIcon className="w-3 h-3" />
+            <StatusIcon
+              className={`w-3 h-3 ${status.spin ? "animate-spin" : ""}`}
+            />
             {status.label}
           </span>
         </div>
@@ -131,23 +217,138 @@ export default function PostCard({ post }) {
           </span>
         </div>
 
-        {/* Footer row */}
-        <div className="flex items-center gap-4 pt-1 border-t text-gray-400 text-xs">
-          <span className="flex items-center gap-1">
-            <ThumbsUp className="w-3.5 h-3.5" />
-            {post.likes?.length || 0}
-          </span>
-          <span className="flex items-center gap-1">
+        {/* Location */}
+        {post.location?.address && (
+          <p className="flex items-center gap-1 text-gray-400 text-xs">
+            <MapPin className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{post.location.address}</span>
+          </p>
+        )}
+
+        {/* Authority response */}
+        {post.authorityResponse && (
+          <div className="bg-blue-50 border border-blue-100 px-3 py-2 rounded-xl">
+            <p className="text-blue-700 text-xs">
+              <span className="font-semibold">Authority: </span>
+              {post.authorityResponse}
+            </p>
+          </div>
+        )}
+
+        {/* Action row */}
+        <div className="flex items-center gap-1 pt-1 border-t border-gray-100">
+          {/* Like button */}
+          <button
+            onClick={handleLike}
+            disabled={!isSignedIn || liking}
+            className={`flex items-center gap-1.5 text-xs font-medium rounded-xl px-3 py-2 transition ${
+              liked
+                ? "text-primary bg-primary/10"
+                : "text-gray-400 hover:text-primary hover:bg-primary/5"
+            } disabled:opacity-50`}
+          >
+            <ThumbsUp
+              className={`w-4 h-4 ${liked ? "fill-primary" : ""}`}
+            />
+            <span>{likeCount}</span>
+          </button>
+
+          {/* Comment toggle */}
+          <button
+            onClick={toggleComments}
+            className="flex items-center gap-1.5 text-gray-400 text-xs hover:text-secondary rounded-xl px-3 py-2 transition"
+          >
+            <MessageSquare className="w-4 h-4" />
+            {commentsLoaded && comments.length > 0 ? (
+              <span>{comments.length}</span>
+            ) : null}
+            {commentOpen ? (
+              <ChevronUp className="w-3 h-3" />
+            ) : (
+              <ChevronDown className="w-3 h-3" />
+            )}
+          </button>
+
+          {/* Volunteers count */}
+          <span className="flex items-center gap-1 ml-auto text-gray-400 text-xs px-2">
             <Users className="w-3.5 h-3.5" />
-            {post.volunteers?.length || 0} volunteers
+            {post.volunteers?.length || 0}
           </span>
-          {post.location?.address && (
-            <span className="flex items-center gap-1 ml-auto truncate">
-              <MapPin className="w-3.5 h-3.5 shrink-0" />
-              {post.location.address}
-            </span>
-          )}
         </div>
+
+        {/* Comment section */}
+        {commentOpen && (
+          <div className="space-y-2.5 pt-1 border-t border-gray-100">
+            {loadingComments && (
+              <div className="flex justify-center py-3">
+                <Loader2 className="w-4 h-4 text-gray-300 animate-spin" />
+              </div>
+            )}
+
+            {!loadingComments && comments.length === 0 && (
+              <p className="py-2 text-center text-gray-400 text-xs">
+                No comments yet.
+              </p>
+            )}
+
+            {comments.map((c) => (
+              <div key={c._id} className="flex items-start gap-2">
+                {c.author?.avatar ? (
+                  <Image
+                    src={c.author.avatar}
+                    alt={c.author.name}
+                    width={24}
+                    height={24}
+                    className="rounded-full object-cover shrink-0 mt-0.5"
+                  />
+                ) : (
+                  <div className="flex justify-center items-center bg-gray-200 rounded-full w-6 h-6 text-gray-500 text-[10px] font-bold shrink-0 mt-0.5">
+                    {c.author?.name?.[0]?.toUpperCase()}
+                  </div>
+                )}
+                <div className="bg-gray-50 px-3 py-2 rounded-xl flex-1 min-w-0">
+                  <p className="font-semibold text-gray-700 text-xs">
+                    {c.author?.name}
+                  </p>
+                  <p className="text-gray-600 text-sm leading-snug mt-0.5">
+                    {c.text}
+                  </p>
+                </div>
+              </div>
+            ))}
+
+            {isSignedIn ? (
+              <form
+                onSubmit={handleSubmitComment}
+                className="flex items-center gap-2"
+              >
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Write a comment…"
+                  maxLength={500}
+                  className="flex-1 bg-gray-50 border border-gray-200 focus:border-primary rounded-xl px-3 py-2 text-sm focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!commentText.trim() || submittingComment}
+                  className="flex justify-center items-center bg-primary hover:bg-red-700 disabled:opacity-40 rounded-xl w-9 h-9 text-white transition shrink-0"
+                >
+                  {submittingComment ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </button>
+              </form>
+            ) : (
+              <p className="text-center text-gray-400 text-xs py-1">
+                Sign in to comment
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </article>
   );

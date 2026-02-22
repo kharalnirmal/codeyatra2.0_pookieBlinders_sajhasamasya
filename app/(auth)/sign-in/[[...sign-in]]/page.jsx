@@ -25,7 +25,7 @@ export default function SignInPage() {
           <p className="mb-4 text-gray-500 text-sm text-center">
             Sign in as a Citizen
           </p>
-          <SignIn />
+          <SignIn path="/sign-in" signUpUrl="/sign-up" />
         </div>
       </div>
     );
