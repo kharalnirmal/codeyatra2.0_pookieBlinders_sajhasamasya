@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { DISTRICTS, CATEGORIES } from "@/lib/constants";
 import PostActionsMenu from "@/components/posts/PostActionsMenu";
+import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 
 const CATEGORY_COLORS = {
   road: "bg-orange-100 text-orange-700",
@@ -135,6 +136,9 @@ export default function AuthorityDashboard() {
     fetchData();
   }, [isLoaded, isSignedIn, router, fetchData]);
 
+  // Auto-refresh every 10 seconds (silent, no loading spinner)
+  useAutoRefresh(fetchData, 10000, isLoaded && isSignedIn);
+
   const handleFilterChange = (f) => {
     setStatusFilter(f);
     setLoading(true);
@@ -204,6 +208,9 @@ export default function AuthorityDashboard() {
   }
 
   const { posts = [], stats = {}, authority } = data || {};
+  const areaConfigured = !!(
+    authority?.area?.district && authority?.area?.categories?.length > 0
+  );
 
   return (
     <div className="bg-gray-50 pb-28 min-h-screen">
@@ -416,7 +423,7 @@ export default function AuthorityDashboard() {
         </div>
 
         {/* Coverage area hint */}
-        {selectedCategories.length > 0 && (
+        {selectedCategories.length > 0 && selectedDistrict ? (
           <div className="flex items-center gap-1.5 text-blue-600 text-xs">
             <Shield className="w-3.5 h-3.5" />
             Showing:{" "}
@@ -425,7 +432,18 @@ export default function AuthorityDashboard() {
                 {c}
               </span>
             ))}
-            {selectedDistrict && <>· {selectedDistrict}</>}
+            · {selectedDistrict}
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-2 bg-yellow-50 px-4 py-3 border border-yellow-200 rounded-xl cursor-pointer"
+            onClick={() => setAreaOpen(true)}
+          >
+            <AlertTriangle className="w-4 h-4 text-yellow-600 shrink-0" />
+            <p className="font-medium text-yellow-700 text-xs">
+              Please select your coverage area first. You cannot manage posts
+              until you set your district and categories.
+            </p>
           </div>
         )}
 
@@ -554,10 +572,15 @@ export default function AuthorityDashboard() {
                       <div className="flex gap-2 pt-1">
                         {post.samasyaStatus === "pending" && (
                           <button
-                            disabled={updatingId === post._id}
-                            onClick={() =>
-                              handleStatusUpdate(post._id, "in_progress")
-                            }
+                            disabled={updatingId === post._id || !areaConfigured}
+                            onClick={() => {
+                              if (!areaConfigured) {
+                                toast.error("Please select your coverage area first.");
+                                setAreaOpen(true);
+                                return;
+                              }
+                              handleStatusUpdate(post._id, "in_progress");
+                            }}
                             className="flex flex-1 justify-center items-center gap-1 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 py-2 border border-blue-200 rounded-xl font-medium text-blue-700 text-xs transition"
                           >
                             <TrendingUp className="w-3.5 h-3.5" />
@@ -565,8 +588,13 @@ export default function AuthorityDashboard() {
                           </button>
                         )}
                         <button
-                          disabled={updatingId === post._id}
+                          disabled={updatingId === post._id || !areaConfigured}
                           onClick={() => {
+                            if (!areaConfigured) {
+                              toast.error("Please select your coverage area first.");
+                              setAreaOpen(true);
+                              return;
+                            }
                             setResponseModal({
                               postId: post._id,
                               currentStatus: post.samasyaStatus,
@@ -579,7 +607,13 @@ export default function AuthorityDashboard() {
                           Mark Complete
                         </button>
                         <button
+                          disabled={!areaConfigured}
                           onClick={() => {
+                            if (!areaConfigured) {
+                              toast.error("Please select your coverage area first.");
+                              setAreaOpen(true);
+                              return;
+                            }
                             setResponseModal({
                               postId: post._id,
                               currentStatus: post.samasyaStatus,
@@ -587,7 +621,7 @@ export default function AuthorityDashboard() {
                             });
                             setResponseText(post.authorityResponse || "");
                           }}
-                          className="bg-gray-50 hover:bg-gray-100 p-2 border border-gray-200 rounded-xl text-gray-500 transition"
+                          className="bg-gray-50 hover:bg-gray-100 disabled:opacity-50 p-2 border border-gray-200 rounded-xl text-gray-500 transition"
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
                         </button>

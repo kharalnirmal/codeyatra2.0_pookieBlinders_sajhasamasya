@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -18,6 +18,7 @@ import {
   PlusCircle,
   Lock,
 } from "lucide-react";
+import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 
 const CATEGORY_COLORS = {
   road: "bg-orange-100 text-orange-700",
@@ -53,21 +54,30 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const fetchProfile = useCallback(async () => {
+    try {
+      const r = await fetch("/api/user/profile");
+      const d = await r.json();
+      if (d.error) setError(d.error);
+      else setProfile(d);
+    } catch {
+      setError("Failed to load profile");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn) {
       router.push("/sign-in");
       return;
     }
-    fetch("/api/user/profile")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) setError(d.error);
-        else setProfile(d);
-      })
-      .catch(() => setError("Failed to load profile"))
-      .finally(() => setLoading(false));
-  }, [isLoaded, isSignedIn, router]);
+    fetchProfile();
+  }, [isLoaded, isSignedIn, router, fetchProfile]);
+
+  // Auto-refresh profile every 15 seconds
+  useAutoRefresh(fetchProfile, 15000, isLoaded && isSignedIn);
 
   const handleSignOut = async () => {
     await signOut();
