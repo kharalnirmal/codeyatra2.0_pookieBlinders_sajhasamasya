@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
-import EditPost from "@/components/posts/editPost";
-import DeletePost from "@/components/posts/deletePost";
+import PostActionsMenu from "@/components/posts/PostActionsMenu";
 import {
   MapPin,
   Clock,
@@ -61,8 +60,10 @@ function timeAgo(dateStr) {
 export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
   const { user, isSignedIn } = useUser();
 
-  // Check if current user is the post author
+  // Check if current user is the post author or an authority
   const isAuthor = isSignedIn && user && post.author?.clerkId === user.id;
+  const isAuthority = isSignedIn && user?.publicMetadata?.role === "authority";
+  const canManagePost = isAuthor || isAuthority;
 
   // Like state (optimistic)
   const [likeCount, setLikeCount] = useState(post.likes?.length || 0);
@@ -188,12 +189,13 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* Edit / Delete for author */}
-            {isAuthor && (
-              <>
-                <EditPost post={post} onUpdated={onPostUpdated} />
-                <DeletePost postId={post._id} onDeleted={onPostDeleted} />
-              </>
+            {/* Three-dot menu for author or authority */}
+            {canManagePost && (
+              <PostActionsMenu
+                post={post}
+                onUpdated={onPostUpdated}
+                onDeleted={onPostDeleted}
+              />
             )}
 
             {/* Status badge */}

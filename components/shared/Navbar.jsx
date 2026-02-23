@@ -126,9 +126,9 @@ export default function Navbar() {
           WebkitBackdropFilter: "blur(20px) saturate(180%)",
         }}
       >
-        {/* LEFT — authority badge or spacer */}
+        {/* LEFT — role badge */}
         <div className="w-20 sm:w-24 flex items-center">
-          {isAuthority && (
+          {isSignedIn && isAuthority && (
             <span
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full
                              text-[10px] font-bold tracking-wide uppercase"
@@ -140,6 +140,20 @@ export default function Navbar() {
             >
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
               Authority
+            </span>
+          )}
+          {isSignedIn && !isAuthority && (
+            <span
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                             text-[10px] font-bold tracking-wide uppercase"
+              style={{
+                background: "rgba(34,197,94,0.10)",
+                border: "1px solid rgba(34,197,94,0.22)",
+                color: "#15803d",
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              Citizen
             </span>
           )}
         </div>

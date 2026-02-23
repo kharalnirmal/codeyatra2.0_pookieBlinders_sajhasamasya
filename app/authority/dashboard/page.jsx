@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { DISTRICTS, CATEGORIES } from "@/lib/constants";
+import PostActionsMenu from "@/components/posts/PostActionsMenu";
 
 const CATEGORY_COLORS = {
   road: "bg-orange-100 text-orange-700",
@@ -88,6 +89,22 @@ export default function AuthorityDashboard() {
   const [responseModal, setResponseModal] = useState(null); // { postId, currentStatus }
   const [responseText, setResponseText] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
+
+  const handlePostUpdated = (updatedPost) => {
+    setData((prev) => ({
+      ...prev,
+      posts: prev.posts.map((p) =>
+        p._id === updatedPost._id ? updatedPost : p,
+      ),
+    }));
+  };
+
+  const handlePostDeleted = (deletedId) => {
+    setData((prev) => ({
+      ...prev,
+      posts: prev.posts.filter((p) => p._id !== deletedId),
+    }));
+  };
 
   const fetchData = useCallback(
     async (filter = statusFilter) => {
@@ -262,8 +279,8 @@ export default function AuthorityDashboard() {
             </button>
           </div>
           <p className="mb-3 text-gray-500 text-xs">
-            Select the categories and your district. Only
-            posts from your area will appear in your dashboard.
+            Select the categories and your district. Only posts from your area
+            will appear in your dashboard.
           </p>
 
           <div className="mb-3">
@@ -288,9 +305,7 @@ export default function AuthorityDashboard() {
           </div>
 
           <div className="mb-4">
-            <p className="mb-1.5 font-medium text-gray-700 text-xs">
-              District
-            </p>
+            <p className="mb-1.5 font-medium text-gray-700 text-xs">District</p>
             <select
               value={selectedDistrict}
               onChange={(e) => setSelectedDistrict(e.target.value)}
@@ -298,7 +313,9 @@ export default function AuthorityDashboard() {
             >
               <option value="">Select a district</option>
               {DISTRICTS.map((d) => (
-                <option key={d} value={d}>{d}</option>
+                <option key={d} value={d}>
+                  {d}
+                </option>
               ))}
             </select>
           </div>
@@ -408,9 +425,7 @@ export default function AuthorityDashboard() {
                 {c}
               </span>
             ))}
-            {selectedDistrict && (
-              <>· {selectedDistrict}</>
-            )}
+            {selectedDistrict && <>· {selectedDistrict}</>}
           </div>
         )}
 
@@ -487,6 +502,11 @@ export default function AuthorityDashboard() {
                         >
                           {post.category}
                         </span>
+                        <PostActionsMenu
+                          post={post}
+                          onUpdated={handlePostUpdated}
+                          onDeleted={handlePostDeleted}
+                        />
                       </div>
                     </div>
 

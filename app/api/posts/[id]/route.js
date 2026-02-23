@@ -57,8 +57,11 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    // Only the author can edit
-    if (post.author.toString() !== user._id.toString()) {
+    // Only the author or an authority can edit
+    if (
+      post.author.toString() !== user._id.toString() &&
+      user.role !== "authority"
+    ) {
       return NextResponse.json(
         { error: "Forbidden – you can only edit your own posts" },
         { status: 403 },
