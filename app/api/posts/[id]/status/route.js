@@ -41,6 +41,17 @@ export async function PATCH(req, { params }) {
       );
     }
 
+    // Ensure authority has selected their coverage area first
+    if (!authorityUser.area?.district) {
+      return NextResponse.json(
+        {
+          error:
+            "Please select your coverage area first in the dashboard settings before managing posts.",
+        },
+        { status: 403 },
+      );
+    }
+
     const { id } = await params;
     const { status, response } = await req.json();
 
@@ -52,6 +63,16 @@ export async function PATCH(req, { params }) {
     const post = await Post.findById(id);
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    // Ensure authority can only manage posts in their assigned district
+    if (post.district && authorityUser.area.district !== post.district) {
+      return NextResponse.json(
+        {
+          error: `You can only manage posts in your area (${authorityUser.area.district}). This post belongs to ${post.district}.`,
+        },
+        { status: 403 },
+      );
     }
 
     const now = new Date();
