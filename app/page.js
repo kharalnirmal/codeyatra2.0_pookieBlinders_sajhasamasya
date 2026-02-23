@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import Loader from "@/components/ui/Loader";
 import PostCard from "@/components/posts/PostCard";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 import { useTranslation } from "@/lib/hooks/useTranslation";
@@ -36,7 +35,6 @@ export default function HomePage() {
   const { isSignedIn } = useUser();
   const { t } = useTranslation();
 
-  const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState([]);
   const [fetchError, setFetchError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -139,12 +137,7 @@ export default function HomePage() {
 
   return (
     <>
-      {loading && <Loader onComplete={() => setLoading(false)} />}
-
-      <div
-        style={{ opacity: loading ? 0 : 1, transition: "opacity 0.5s ease" }}
-        className="flex flex-col min-h-screen bg-slate-50 pb-24"
-      >
+      <div className="flex flex-col min-h-screen bg-slate-50 pb-24">
         <main className="flex-1">
           {/* ═══════════════════════════════════
               NOT SIGNED IN → HERO

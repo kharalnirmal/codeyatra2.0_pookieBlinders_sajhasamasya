@@ -1,19 +1,25 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import logo from "@/public/logo.png";
 
 export default function Loader({ onComplete }) {
   const [fadeOut, setFadeOut] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+
+  // Keep ref in sync without restarting the timer
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setFadeOut(true);
-      setTimeout(() => onComplete && onComplete(), 700);
+      setTimeout(() => onCompleteRef.current?.(), 700);
     }, 2800);
 
     return () => clearTimeout(timer);
-  }, [onComplete]);
+  }, []);
 
   return (
     <>
@@ -99,22 +105,26 @@ export default function Loader({ onComplete }) {
         }}
       >
         {/* Radial ambient glow */}
-        <div style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "radial-gradient(ellipse 70% 60% at 50% 42%, rgba(220,30,30,0.05) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }} />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(ellipse 70% 60% at 50% 42%, rgba(220,30,30,0.05) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
 
         {/* Logo + ripple rings */}
-        <div style={{
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: "28px",
-        }}>
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: "28px",
+          }}
+        >
           <div className="ping-ring ping-ring-1" />
           <div className="ping-ring ping-ring-2" />
           <div className="ping-ring ping-ring-3" />
@@ -132,39 +142,49 @@ export default function Loader({ onComplete }) {
         </div>
 
         {/* Brand name */}
-        <div className="brand-text" style={{ textAlign: "center", marginBottom: "10px" }}>
-          <span style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: "clamp(20px, 5vw, 32px)",
-            fontWeight: 600,
-            letterSpacing: "6px",
-            textTransform: "uppercase",
-            color: "#1a1a1a",
-          }}>
+        <div
+          className="brand-text"
+          style={{ textAlign: "center", marginBottom: "10px" }}
+        >
+          <span
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "clamp(20px, 5vw, 32px)",
+              fontWeight: 600,
+              letterSpacing: "6px",
+              textTransform: "uppercase",
+              color: "#1a1a1a",
+            }}
+          >
             Sajha
           </span>
-          <span style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: "clamp(20px, 5vw, 32px)",
-            fontWeight: 600,
-            letterSpacing: "6px",
-            textTransform: "uppercase",
-            color: "#c8201a",
-          }}>
+          <span
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "clamp(20px, 5vw, 32px)",
+              fontWeight: 600,
+              letterSpacing: "6px",
+              textTransform: "uppercase",
+              color: "#c8201a",
+            }}
+          >
             Samasya
           </span>
         </div>
 
         {/* Tagline */}
-        <p className="tagline-text" style={{
-          fontFamily: "'Lato', sans-serif",
-          fontWeight: 400,
-          fontSize: "clamp(9px, 2vw, 11px)",
-          letterSpacing: "4px",
-          textTransform: "uppercase",
-          color: "#2563eb",
-          margin: "0 0 44px 0",
-        }}>
+        <p
+          className="tagline-text"
+          style={{
+            fontFamily: "'Lato', sans-serif",
+            fontWeight: 400,
+            fontSize: "clamp(9px, 2vw, 11px)",
+            letterSpacing: "4px",
+            textTransform: "uppercase",
+            color: "#2563eb",
+            margin: "0 0 44px 0",
+          }}
+        >
           Connecting Nepal
         </p>
 
