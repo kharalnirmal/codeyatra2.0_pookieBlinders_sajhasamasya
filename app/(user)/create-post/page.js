@@ -54,8 +54,8 @@ const GlassCard = ({ children, className = "" }) => (
 );
 
 const Label = ({ children, required }) => (
-  <label className="block mb-2 ml-1 text-[11px] font-black uppercase tracking-[0.15em] text-[#1d398f]/60">
-    {children} {required && <span className="text-[#e8000c]">*</span>}
+  <label className="block mb-2 ml-1 text-[11px] font-black uppercase tracking-[0.15em] text-primary/60">
+    {children} {required && <span className="text-primary">*</span>}
   </label>
 );
 

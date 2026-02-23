@@ -44,7 +44,7 @@ export default function CitizenSetupPage() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[rgb(102,169,95)]/10 rounded-full blur-3xl animate-pulse" />
 
           <div className="relative z-10 flex flex-col items-center gap-6">
-            <div className="p-4 rounded-[2rem] bg-white shadow-xl shadow-green-900/5 border border-green-50">
+            <div className="p-4 rounded-4xl bg-white shadow-xl shadow-green-900/5 border border-green-50">
               <Loader2
                 className="w-8 h-8 text-[rgb(102,169,95)] animate-spin"
                 strokeWidth={2.5}
