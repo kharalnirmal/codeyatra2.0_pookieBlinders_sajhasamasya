@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import PostActionsMenu from "@/components/posts/PostActionsMenu";
@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 
 const CATEGORY_COLORS = {
   road: "bg-orange-100 text-orange-700",
@@ -100,18 +101,26 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
     }
   };
 
-  const loadComments = async () => {
-    if (commentsLoaded) return;
-    setLoadingComments(true);
+  const refreshComments = useCallback(async () => {
     try {
       const res = await fetch(`/api/posts/${post._id}/comments`);
       const data = await res.json();
       setComments(data.comments || []);
       setCommentsLoaded(true);
-    } finally {
-      setLoadingComments(false);
+    } catch {
+      // silent fail on background refresh
     }
+  }, [post._id]);
+
+  const loadComments = async () => {
+    if (commentsLoaded) return;
+    setLoadingComments(true);
+    await refreshComments();
+    setLoadingComments(false);
   };
+
+  // Auto-refresh comments every 10s while comment section is open
+  useAutoRefresh(refreshComments, 10000, commentOpen && commentsLoaded);
 
   const toggleComments = () => {
     const next = !commentOpen;
@@ -146,7 +155,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
   const categoryClass = CATEGORY_COLORS[post.category] || CATEGORY_COLORS.other;
 
   return (
-    <article className="bg-white shadow-sm rounded-2xl overflow-hidden border border-gray-100">
+    <article className="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden">
       {/* Photo */}
       {post.photo && (
         <div
@@ -244,7 +253,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
 
         {/* Authority response */}
         {post.authorityResponse && (
-          <div className="bg-blue-50 border border-blue-100 px-3 py-2 rounded-xl">
+          <div className="bg-blue-50 px-3 py-2 border border-blue-100 rounded-xl">
             <p className="text-blue-700 text-xs">
               <span className="font-semibold">Authority: </span>
               {post.authorityResponse}
@@ -253,7 +262,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
         )}
 
         {/* Action row */}
-        <div className="flex items-center gap-1 pt-1 border-t border-gray-100">
+        <div className="flex items-center gap-1 pt-1 border-gray-100 border-t">
           {/* Like button */}
           <button
             onClick={handleLike}
@@ -271,7 +280,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
           {/* Comment toggle */}
           <button
             onClick={toggleComments}
-            className="flex items-center gap-1.5 text-gray-400 text-xs hover:text-secondary rounded-xl px-3 py-2 transition"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-gray-400 hover:text-secondary text-xs transition"
           >
             <MessageSquare className="w-4 h-4" />
             {commentsLoaded && comments.length > 0 ? (
@@ -285,7 +294,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
           </button>
 
           {/* Volunteers count */}
-          <span className="flex items-center gap-1 ml-auto text-gray-400 text-xs px-2">
+          <span className="flex items-center gap-1 ml-auto px-2 text-gray-400 text-xs">
             <Users className="w-3.5 h-3.5" />
             {post.volunteers?.length || 0}
           </span>
@@ -293,7 +302,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
 
         {/* Comment section */}
         {commentOpen && (
-          <div className="space-y-2.5 pt-1 border-t border-gray-100">
+          <div className="space-y-2.5 pt-1 border-gray-100 border-t">
             {loadingComments && (
               <div className="flex justify-center py-3">
                 <Loader2 className="w-4 h-4 text-gray-300 animate-spin" />
@@ -301,7 +310,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
             )}
 
             {!loadingComments && comments.length === 0 && (
-              <p className="py-2 text-center text-gray-400 text-xs">
+              <p className="py-2 text-gray-400 text-xs text-center">
                 No comments yet.
               </p>
             )}
@@ -314,18 +323,18 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
                     alt={c.author.name}
                     width={24}
                     height={24}
-                    className="rounded-full object-cover shrink-0 mt-0.5"
+                    className="mt-0.5 rounded-full object-cover shrink-0"
                   />
                 ) : (
-                  <div className="flex justify-center items-center bg-gray-200 rounded-full w-6 h-6 text-gray-500 text-[10px] font-bold shrink-0 mt-0.5">
+                  <div className="flex justify-center items-center bg-gray-200 mt-0.5 rounded-full w-6 h-6 font-bold text-[10px] text-gray-500 shrink-0">
                     {c.author?.name?.[0]?.toUpperCase()}
                   </div>
                 )}
-                <div className="bg-gray-50 px-3 py-2 rounded-xl flex-1 min-w-0">
+                <div className="flex-1 bg-gray-50 px-3 py-2 rounded-xl min-w-0">
                   <p className="font-semibold text-gray-700 text-xs">
                     {c.author?.name}
                   </p>
-                  <p className="text-gray-600 text-sm leading-snug mt-0.5">
+                  <p className="mt-0.5 text-gray-600 text-sm leading-snug">
                     {c.text}
                   </p>
                 </div>
@@ -343,7 +352,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Write a comment…"
                   maxLength={500}
-                  className="flex-1 bg-gray-50 border border-gray-200 focus:border-primary rounded-xl px-3 py-2 text-sm focus:outline-none"
+                  className="flex-1 bg-gray-50 px-3 py-2 border border-gray-200 focus:border-primary rounded-xl focus:outline-none text-sm"
                 />
                 <button
                   type="submit"
@@ -358,7 +367,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
                 </button>
               </form>
             ) : (
-              <p className="text-center text-gray-400 text-xs py-1">
+              <p className="py-1 text-gray-400 text-xs text-center">
                 Sign in to comment
               </p>
             )}

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Loader from "@/components/ui/Loader";
 import PostCard from "@/components/posts/PostCard";
 import { AlertCircle, RefreshCw } from "lucide-react";
+import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 
 export default function Home() {
   const [loading, setLoading] = useState(true);
@@ -11,7 +12,7 @@ export default function Home() {
   const [fetchError, setFetchError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  async function fetchPosts(showRefreshing = false) {
+  const fetchPosts = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);
     setFetchError("");
     try {
@@ -24,11 +25,14 @@ export default function Home() {
     } finally {
       if (showRefreshing) setRefreshing(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [fetchPosts]);
+
+  // Auto-refresh every 10 seconds (silent, no loading spinner)
+  useAutoRefresh(() => fetchPosts(false), 10000);
 
   return (
     <>
