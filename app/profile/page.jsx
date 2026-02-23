@@ -19,6 +19,7 @@ import {
   Lock,
 } from "lucide-react";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
+import { useTranslation } from "@/lib/hooks/useTranslation";
 
 const CATEGORY_COLORS = {
   road: "bg-orange-100 text-orange-700",
@@ -49,6 +50,7 @@ export default function ProfilePage() {
   const { isLoaded, isSignedIn, user } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -136,7 +138,7 @@ export default function ProfilePage() {
                 }`}
               >
                 <Shield className="w-3 h-3" />
-                {u.role === "authority" ? "Authority" : "Citizen"}
+                {u.role === "authority" ? t("profile.authority") : t("profile.citizen")}
               </span>
             </div>
           </div>
@@ -146,14 +148,14 @@ export default function ProfilePage() {
             className="flex items-center gap-1.5 bg-gray-100 hover:bg-red-50 px-3 py-2 rounded-xl text-gray-600 hover:text-red-600 text-xs transition"
           >
             <LogOut className="w-3.5 h-3.5" />
-            Sign Out
+            {t("profile.signOut")}
           </button>
         </div>
 
         {/* Join date */}
         <div className="flex items-center gap-1.5 mx-auto mt-3 max-w-lg text-gray-400 text-xs">
           <CalendarDays className="w-3.5 h-3.5" />
-          Joined{" "}
+          {t("profile.joined")}{" "}
           {new Date(u.createdAt).toLocaleDateString("en-US", {
             month: "long",
             year: "numeric",
@@ -166,21 +168,21 @@ export default function ProfilePage() {
         <div className="gap-3 grid grid-cols-3">
           {[
             {
-              label: "Points",
+              label: t("profile.points"),
               value: u.points,
               icon: Star,
               color: "text-yellow-500",
               bg: "bg-yellow-50",
             },
             {
-              label: "Raised",
+              label: t("profile.raised"),
               value: u.issuesRaised,
               icon: TrendingUp,
               color: "text-primary",
               bg: "bg-red-50",
             },
             {
-              label: "Solved",
+              label: t("profile.solved"),
               value: u.issuesSolved,
               icon: CheckCircle,
               color: "text-green-600",
@@ -205,7 +207,7 @@ export default function ProfilePage() {
         {/* ── Badges ── */}
         <div className="bg-white shadow-sm p-4 border rounded-2xl">
           <h3 className="mb-3 font-semibold text-gray-800 text-sm">
-            Badges
+            {t("profile.badges")}
             <span className="bg-primary/10 ml-2 px-2 py-0.5 rounded-full font-medium text-primary text-xs">
               {earnedBadges.length}/{allBadges.length}
             </span>
@@ -233,7 +235,7 @@ export default function ProfilePage() {
 
           {lockedBadges.length > 0 && (
             <>
-              <p className="mb-2 text-gray-400 text-xs">Locked</p>
+              <p className="mb-2 text-gray-400 text-xs">{t("profile.locked")}</p>
               <div className="flex flex-wrap gap-2">
                 {lockedBadges.map((b) => (
                   <div
@@ -264,14 +266,14 @@ export default function ProfilePage() {
         <div>
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-semibold text-gray-800 text-sm">
-              {u.role === "authority" ? "Handled Issues" : "Your Issues"}
+              {u.role === "authority" ? t("profile.handledIssues") : t("profile.yourIssues")}
             </h3>
             {u.role !== "authority" && (
               <Link
                 href="/create-post"
                 className="flex items-center gap-1 text-primary text-xs hover:underline"
               >
-                <PlusCircle className="w-3.5 h-3.5" /> New
+                <PlusCircle className="w-3.5 h-3.5" /> {t("profile.new")}
               </Link>
             )}
           </div>
@@ -280,15 +282,15 @@ export default function ProfilePage() {
             <div className="flex flex-col items-center gap-2 py-10 border-2 border-gray-200 border-dashed rounded-2xl text-center">
               <p className="text-gray-400 text-sm">
                 {u.role === "authority"
-                  ? "No issues handled yet."
-                  : "No issues reported yet."}
+                  ? t("profile.noHandled")
+                  : t("profile.noIssues")}
               </p>
               {u.role !== "authority" && (
                 <Link
                   href="/create-post"
                   className="text-primary text-sm hover:underline"
                 >
-                  Report your first issue →
+                  {t("profile.firstIssue")}
                 </Link>
               )}
             </div>

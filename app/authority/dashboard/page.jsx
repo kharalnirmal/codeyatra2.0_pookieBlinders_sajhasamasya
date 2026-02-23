@@ -39,6 +39,7 @@ import {
   Area,
 } from "recharts";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
+import { useTranslation } from "@/lib/hooks/useTranslation";
 
 const CATEGORY_COLORS = {
   road: "bg-orange-100 text-orange-700",
@@ -109,6 +110,7 @@ export default function AuthorityDashboard() {
   const { isLoaded, isSignedIn } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -188,7 +190,7 @@ export default function AuthorityDashboard() {
       });
       const json = await res.json();
       if (json.error) throw new Error(json.error);
-      toast.success("Coverage area saved!");
+      toast.success(t("auth.areaSaved"));
       setAreaOpen(false);
       fetchData();
     } catch (err) {
@@ -322,7 +324,7 @@ export default function AuthorityDashboard() {
               className="flex items-center gap-1 bg-white/20 hover:bg-white/30 px-2 py-1.5 rounded-lg text-white text-xs transition"
             >
               <Settings className="w-3.5 h-3.5" />
-              Area
+              {t("auth.area")}
             </button>
             <button
               onClick={handleSignOut}
@@ -336,11 +338,11 @@ export default function AuthorityDashboard() {
         {/* Rating info */}
         <div className="mx-auto mt-2 max-w-2xl">
           <p className="text-blue-200 text-xs">
-            {authority?.totalResolved ?? 0} resolved ·{" "}
-            {authority?.totalIgnored ?? 0} ignored
+            {authority?.totalResolved ?? 0} {t("auth.resolved")} ·{" "}
+            {authority?.totalIgnored ?? 0} {t("auth.ignored")}
             {(authority?.rating ?? 5) < 3.5 && (
               <span className="ml-2 text-yellow-300">
-                ⚠ Low rating – respond to issues on time
+                ⚠ {t("auth.lowRating")}
               </span>
             )}
           </p>
@@ -352,20 +354,19 @@ export default function AuthorityDashboard() {
         <div className="bg-white shadow-md mx-auto px-4 py-4 border-b max-w-2xl">
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-semibold text-gray-800 text-sm">
-              Coverage Area Settings
+              {t("auth.areaSettings")}
             </h3>
             <button onClick={() => setAreaOpen(false)}>
               <X className="w-4 h-4 text-gray-400" />
             </button>
           </div>
           <p className="mb-3 text-gray-500 text-xs">
-            Select the categories and your district. Only posts from your area
-            will appear in your dashboard.
+            {t("auth.areaHint")}
           </p>
 
           <div className="mb-3">
             <p className="mb-1.5 font-medium text-gray-700 text-xs">
-              Categories
+              {t("auth.categories")}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {CATEGORIES.map((c) => (
@@ -385,13 +386,13 @@ export default function AuthorityDashboard() {
           </div>
 
           <div className="mb-4">
-            <p className="mb-1.5 font-medium text-gray-700 text-xs">District</p>
+            <p className="mb-1.5 font-medium text-gray-700 text-xs">{t("auth.district")}</p>
             <select
               value={selectedDistrict}
               onChange={(e) => setSelectedDistrict(e.target.value)}
               className="bg-white px-3 py-2 border border-gray-300 focus:border-blue-500 rounded-xl focus:outline-none w-full text-sm"
             >
-              <option value="">Select a district</option>
+              <option value="">{t("auth.selectDistrict")}</option>
               {DISTRICTS.map((d) => (
                 <option key={d} value={d}>
                   {d}
@@ -405,7 +406,7 @@ export default function AuthorityDashboard() {
             disabled={savingArea}
             className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 px-4 py-2 rounded-xl w-full font-medium text-white text-sm transition"
           >
-            {savingArea ? "Saving…" : "Save Coverage Area"}
+            {savingArea ? t("auth.saving") : t("auth.saveArea")}
           </button>
         </div>
       )}
@@ -415,35 +416,35 @@ export default function AuthorityDashboard() {
         <div className="gap-2 grid grid-cols-5">
           {[
             {
-              label: "Total",
+              label: t("auth.total"),
               value: stats.total ?? 0,
               icon: ClipboardList,
               color: "text-blue-500",
               bg: "bg-blue-50",
             },
             {
-              label: "Pending",
+              label: t("auth.pending"),
               value: stats.pending ?? 0,
               icon: Clock,
               color: "text-yellow-500",
               bg: "bg-yellow-50",
             },
             {
-              label: "Active",
+              label: t("auth.active"),
               value: stats.inProgress ?? 0,
               icon: TrendingUp,
               color: "text-blue-400",
               bg: "bg-blue-50",
             },
             {
-              label: "Done",
+              label: t("auth.done"),
               value: stats.completed ?? 0,
               icon: CheckCircle,
               color: "text-green-500",
               bg: "bg-green-50",
             },
             {
-              label: "Overdue",
+              label: t("auth.overdue"),
               value: stats.overdue ?? 0,
               icon: AlertTriangle,
               color: "text-red-500",
@@ -472,7 +473,7 @@ export default function AuthorityDashboard() {
             {statusChartData.length > 0 && (
               <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
                 <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
-                  Status Distribution
+                  {t("auth.statusDist")}
                 </h4>
                 <div className="relative" style={{ height: 180 }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -518,7 +519,7 @@ export default function AuthorityDashboard() {
                       {stats.total ?? 0}
                     </span>
                     <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mt-0.5">
-                      Total
+                      {t("auth.total")}
                     </span>
                   </div>
                 </div>
@@ -544,7 +545,7 @@ export default function AuthorityDashboard() {
             {categoryChartData.length > 0 && (
               <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
                 <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
-                  By Category
+                  {t("auth.byCategory")}
                 </h4>
                 <div style={{ height: 180 }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -630,19 +631,19 @@ export default function AuthorityDashboard() {
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                7-Day Trend
+                {t("auth.7dayTrend")}
               </h4>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-[3px] rounded-full bg-blue-500" />
                   <span className="text-[11px] text-gray-500 font-medium">
-                    Reported
+                    {t("auth.reported")}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-[3px] rounded-full bg-emerald-500" />
                   <span className="text-[11px] text-gray-500 font-medium">
-                    Resolved
+                    {t("post.resolved")}
                   </span>
                 </div>
               </div>
@@ -765,9 +766,9 @@ export default function AuthorityDashboard() {
               }`}
             >
               {f === "in_progress"
-                ? "Active"
+                ? t("auth.active")
                 : f === "all"
-                  ? "All"
+                  ? t("auth.all")
                   : f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
@@ -786,7 +787,7 @@ export default function AuthorityDashboard() {
         {selectedCategories.length > 0 && selectedDistrict ? (
           <div className="flex items-center gap-1.5 text-blue-600 text-xs">
             <Shield className="w-3.5 h-3.5" />
-            Showing:{" "}
+            {t("auth.showing")}:{" "}
             {selectedCategories.map((c) => (
               <span key={c} className="mr-1 capitalize">
                 {c}
@@ -801,8 +802,7 @@ export default function AuthorityDashboard() {
           >
             <AlertTriangle className="w-4 h-4 text-yellow-600 shrink-0" />
             <p className="font-medium text-yellow-700 text-xs">
-              Please select your coverage area first. You cannot manage posts
-              until you set your district and categories.
+              {t("auth.selectAreaFirst")}
             </p>
           </div>
         )}
@@ -811,10 +811,10 @@ export default function AuthorityDashboard() {
         {posts.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-16 border-2 border-gray-200 border-dashed rounded-2xl text-center">
             <ClipboardList className="w-8 h-8 text-gray-300" />
-            <p className="text-gray-400 text-sm">No issues found.</p>
+            <p className="text-gray-400 text-sm">{t("auth.noIssues")}</p>
             {selectedCategories.length === 0 && (
               <p className="text-gray-400 text-xs">
-                Set your coverage area to filter relevant issues.
+                {t("auth.setArea")}
               </p>
             )}
           </div>
@@ -913,7 +913,7 @@ export default function AuthorityDashboard() {
                       <p
                         className={`text-xs ${overdue ? "text-red-500" : "text-gray-400"}`}
                       >
-                        Deadline: {new Date(post.deadline).toLocaleString()}
+                        {t("auth.deadline")}: {new Date(post.deadline).toLocaleString()}
                       </p>
                     )}
 
@@ -921,7 +921,7 @@ export default function AuthorityDashboard() {
                     {post.authorityResponse && (
                       <div className="bg-blue-50 px-3 py-2 rounded-lg">
                         <p className="text-blue-700 text-xs">
-                          <span className="font-medium">Response: </span>
+                          <span className="font-medium">{t("auth.response")}: </span>
                           {post.authorityResponse}
                         </p>
                       </div>
@@ -935,7 +935,7 @@ export default function AuthorityDashboard() {
                             disabled={updatingId === post._id || !areaConfigured}
                             onClick={() => {
                               if (!areaConfigured) {
-                                toast.error("Please select your coverage area first.");
+                                toast.error(t("common.selectAreaFirst"));
                                 setAreaOpen(true);
                                 return;
                               }
@@ -944,14 +944,14 @@ export default function AuthorityDashboard() {
                             className="flex flex-1 justify-center items-center gap-1 bg-blue-50 hover:bg-blue-100 disabled:opacity-50 py-2 border border-blue-200 rounded-xl font-medium text-blue-700 text-xs transition"
                           >
                             <TrendingUp className="w-3.5 h-3.5" />
-                            Mark In Progress
+                            {t("auth.markInProgress")}
                           </button>
                         )}
                         <button
                           disabled={updatingId === post._id || !areaConfigured}
                           onClick={() => {
                             if (!areaConfigured) {
-                              toast.error("Please select your coverage area first.");
+                              toast.error(t("common.selectAreaFirst"));
                               setAreaOpen(true);
                               return;
                             }
@@ -964,13 +964,13 @@ export default function AuthorityDashboard() {
                           className="flex flex-1 justify-center items-center gap-1 bg-green-50 hover:bg-green-100 disabled:opacity-50 py-2 border border-green-200 rounded-xl font-medium text-green-700 text-xs transition"
                         >
                           <CheckCircle className="w-3.5 h-3.5" />
-                          Mark Complete
+                          {t("auth.markComplete")}
                         </button>
                         <button
                           disabled={!areaConfigured}
                           onClick={() => {
                             if (!areaConfigured) {
-                              toast.error("Please select your coverage area first.");
+                              toast.error(t("common.selectAreaFirst"));
                               setAreaOpen(true);
                               return;
                             }
@@ -990,7 +990,7 @@ export default function AuthorityDashboard() {
                     {post.samasyaStatus === "completed" && (
                       <div className="flex items-center gap-1 text-green-600 text-xs">
                         <CheckCircle className="w-3.5 h-3.5" />
-                        Resolved{" "}
+                        {t("post.resolved")}{" "}
                         {post.respondedAt ? timeAgo(post.respondedAt) : ""}
                       </div>
                     )}
@@ -1009,8 +1009,8 @@ export default function AuthorityDashboard() {
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-semibold text-gray-800 text-sm">
                 {responseModal.responseOnly
-                  ? "Add / Edit Response"
-                  : "Mark as Completed"}
+                  ? t("auth.addResponse")
+                  : t("auth.markCompleted")}
               </h3>
               <button onClick={() => setResponseModal(null)}>
                 <X className="w-4 h-4 text-gray-400" />
@@ -1019,7 +1019,7 @@ export default function AuthorityDashboard() {
             <textarea
               value={responseText}
               onChange={(e) => setResponseText(e.target.value)}
-              placeholder="Add a response or note for the citizen… (optional)"
+              placeholder={t("auth.responsePlaceholder")}
               rows={3}
               className="px-3 py-2 border border-gray-300 focus:border-blue-500 rounded-xl focus:outline-none w-full text-sm resize-none"
             />
@@ -1028,7 +1028,7 @@ export default function AuthorityDashboard() {
                 onClick={() => setResponseModal(null)}
                 className="flex-1 hover:bg-gray-50 py-2 border border-gray-300 rounded-xl text-gray-600 text-sm transition"
               >
-                Cancel
+                {t("auth.cancel")}
               </button>
               {!responseModal.responseOnly && (
                 <button
@@ -1039,8 +1039,8 @@ export default function AuthorityDashboard() {
                   className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 py-2 rounded-xl font-medium text-white text-sm transition"
                 >
                   {updatingId === responseModal.postId
-                    ? "Saving…"
-                    : "Confirm Complete"}
+                    ? t("auth.saving")
+                    : t("auth.confirmComplete")}
                 </button>
               )}
               {responseModal.responseOnly && (
@@ -1055,8 +1055,8 @@ export default function AuthorityDashboard() {
                   className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 py-2 rounded-xl font-medium text-white text-sm transition"
                 >
                   {updatingId === responseModal.postId
-                    ? "Saving…"
-                    : "Save Response"}
+                    ? t("auth.saving")
+                    : t("auth.saveResponse")}
                 </button>
               )}
             </div>

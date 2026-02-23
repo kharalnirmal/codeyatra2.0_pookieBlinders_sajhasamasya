@@ -1,34 +1,47 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Plus, User, LayoutDashboard, Rss, Globe } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
+import { useTranslation } from "@/lib/hooks/useTranslation";
 
 export default function Navbar() {
-  const [lang, setLang] = useState("en");
+  const { t, lang, toggleLang } = useTranslation();
   const [langFlip, setLangFlip] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
   const [logoHov, setLogoHov] = useState(false);
   const pathname = usePathname();
   const { user, isSignedIn } = useUser();
+  const lastScrollY = useRef(0);
 
   const isAuthority = user?.publicMetadata?.role === "authority";
   const accent = isAuthority ? "#6366f1" : "#22c55e";
   const accentDark = isAuthority ? "#4338ca" : "#15803d";
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 6);
+    const fn = () => {
+      const y = window.scrollY;
+      setScrolled(y > 6);
+      // Hide on scroll down, show on scroll up
+      if (y > lastScrollY.current && y > 60) {
+        setHeaderVisible(false);
+      } else {
+        setHeaderVisible(true);
+      }
+      lastScrollY.current = y;
+    };
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  const toggleLang = () => {
+  const handleToggleLang = () => {
     setLangFlip(true);
     setTimeout(() => {
-      setLang((p) => (p === "en" ? "ne" : "en"));
+      toggleLang();
       setLangFlip(false);
     }, 140);
   };
@@ -36,20 +49,10 @@ export default function Navbar() {
   const isActive = (href) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-  /* All bottom-bar items unified — lang toggle is just another "tab" */
   const citizenItems = [
-    { href: "/", Icon: Home, label: lang === "en" ? "Home" : "गृह" },
-    {
-      href: "/create-post",
-      Icon: Plus,
-      label: lang === "en" ? "Report" : "रिपोर्ट",
-      isFab: true,
-    },
-    {
-      href: "/profile",
-      Icon: User,
-      label: lang === "en" ? "Profile" : "प्रोफाइल",
-    },
+    { href: "/", Icon: Home, label: t("nav.home") },
+    { href: "/create-post", Icon: Plus, label: t("nav.report"), isFab: true },
+    { href: "/profile", Icon: User, label: t("nav.profile") },
     { isLang: true, Icon: Globe, label: lang === "en" ? "NP" : "EN" },
   ];
 
@@ -57,14 +60,10 @@ export default function Navbar() {
     {
       href: "/authority/dashboard",
       Icon: LayoutDashboard,
-      label: lang === "en" ? "Dashboard" : "ड्यास",
+      label: t("nav.dashboard"),
     },
-    { href: "/", Icon: Rss, label: lang === "en" ? "Feed" : "फिड" },
-    {
-      href: "/profile",
-      Icon: User,
-      label: lang === "en" ? "Profile" : "प्रोफाइल",
-    },
+    { href: "/", Icon: Rss, label: t("nav.feed") },
+    { href: "/profile", Icon: User, label: t("nav.profile") },
     { isLang: true, Icon: Globe, label: lang === "en" ? "NP" : "EN" },
   ];
 
@@ -108,12 +107,12 @@ export default function Navbar() {
       `}</style>
 
       {/* ══════════════════════
-          TOP HEADER
+          TOP HEADER — hides on scroll down, reappears on scroll up
       ══════════════════════ */}
       <header
         className={[
-          "sticky top-0 z-50 flex items-center justify-between",
-          "px-4 sm:px-6 h-14 sm:h-16 transition-all duration-400",
+          "sticky top-0 z-50 flex items-center justify-center",
+          "px-4 sm:px-6 h-14 sm:h-16 transition-all duration-300",
           scrolled
             ? "shadow-[0_4px_28px_rgba(26,92,56,0.10)] border-b border-black/5"
             : "border-b border-transparent",
@@ -124,48 +123,49 @@ export default function Navbar() {
             : "rgba(255,255,255,0.65)",
           backdropFilter: "blur(20px) saturate(180%)",
           WebkitBackdropFilter: "blur(20px) saturate(180%)",
+          transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+          transition:
+            "transform 0.3s ease, background 0.4s ease, box-shadow 0.4s ease",
         }}
       >
         {/* LEFT — role badge */}
-        <div className="w-20 sm:w-24 flex items-center">
+        <div className="left-4 sm:left-6 absolute flex items-center">
           {isSignedIn && isAuthority && (
             <span
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full
-                             text-[10px] font-bold tracking-wide uppercase"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[10px] uppercase tracking-wide"
               style={{
                 background: "rgba(99,102,241,0.10)",
                 border: "1px solid rgba(99,102,241,0.22)",
                 color: "#6366f1",
               }}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-              Authority
+              <span className="bg-indigo-500 rounded-full w-1.5 h-1.5 animate-pulse" />
+              {t("nav.authority")}
             </span>
           )}
           {isSignedIn && !isAuthority && (
             <span
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full
-                             text-[10px] font-bold tracking-wide uppercase"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-[10px] uppercase tracking-wide"
               style={{
                 background: "rgba(34,197,94,0.10)",
                 border: "1px solid rgba(34,197,94,0.22)",
                 color: "#15803d",
               }}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Citizen
+              <span className="bg-green-500 rounded-full w-1.5 h-1.5 animate-pulse" />
+              {t("nav.citizen")}
             </span>
           )}
         </div>
 
-        {/* CENTER — logo + brand (absolutely centered) */}
+        {/* CENTER — logo + brand */}
         <Link
           href={isAuthority ? "/authority/dashboard" : "/"}
-          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5"
+          className="flex items-center gap-2.5"
           onMouseEnter={() => setLogoHov(true)}
           onMouseLeave={() => setLogoHov(false)}
         >
-          <div className="relative flex items-center justify-center w-9 h-9 shrink-0">
+          <div className="relative flex justify-center items-center w-9 h-9 shrink-0">
             <span
               style={{
                 position: "absolute",
@@ -216,92 +216,18 @@ export default function Navbar() {
                             ${langFlip ? "opacity-0 translate-y-1" : "opacity-100 translate-y-0"}`}
           >
             <span className={isAuthority ? "shimmer-indigo" : "shimmer-green"}>
-              {lang === "en" ? "SajhaSamasya" : "साझा समस्या"}
+              {t("nav.brand")}
             </span>
           </span>
         </Link>
-
-        {/* RIGHT — profile */}
-        <div className="w-20 sm:w-24 flex justify-end">
-          <Link
-            href={isSignedIn ? "/profile" : "/sign-in"}
-            aria-label="Profile"
-            className="group relative flex items-center justify-center"
-          >
-            {/* Hover glow ring */}
-            <span
-              className="absolute rounded-full opacity-0 group-hover:opacity-100
-                         transition-opacity duration-300 pointer-events-none"
-              style={{
-                inset: "-6px",
-                background: isAuthority
-                  ? "radial-gradient(circle,rgba(99,102,241,0.20) 0%,transparent 70%)"
-                  : "radial-gradient(circle,rgba(34,197,94,0.20) 0%,transparent 70%)",
-                filter: "blur(8px)",
-              }}
-            />
-
-            {isSignedIn && user?.imageUrl ? (
-              /* Avatar image — accent border always visible */
-              <div
-                className="relative z-10 rounded-full p-0.5
-                           transition-all duration-300 ease-[cubic-bezier(.34,1.56,.64,1)]
-                           group-hover:scale-110"
-                style={{
-                  background: `linear-gradient(135deg, ${accent}, ${accentDark})`,
-                  boxShadow: `0 2px 10px ${accent}40`,
-                }}
-              >
-                <div
-                  className="rounded-full overflow-hidden"
-                  style={{ width: 30, height: 30 }}
-                >
-                  <Image
-                    src={user.imageUrl}
-                    alt="Profile"
-                    width={30}
-                    height={30}
-                    className="rounded-full object-cover block"
-                  />
-                </div>
-              </div>
-            ) : (
-              /* Fallback icon — same w-11 h-11 bubble as bottom bar items */
-              <span
-                className="relative z-10 flex items-center justify-center w-9 h-9 rounded-xl
-                           transition-all duration-300 ease-[cubic-bezier(.34,1.56,.64,1)]
-                           group-hover:scale-110"
-                style={{
-                  background: isAuthority
-                    ? "rgba(99,102,241,0.09)"
-                    : "rgba(34,197,94,0.09)",
-                  border: `1.5px solid ${
-                    isAuthority
-                      ? "rgba(99,102,241,0.28)"
-                      : "rgba(34,197,94,0.28)"
-                  }`,
-                  boxShadow: `0 2px 8px ${accent}25`,
-                  color: isAuthority ? "#4338ca" : "#15803d",
-                }}
-              >
-                <User size={17} strokeWidth={1.9} />
-              </span>
-            )}
-          </Link>
-        </div>
       </header>
 
       {/* ══════════════════════
           BOTTOM FLOATING BAR
       ══════════════════════ */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-50 flex justify-center
-                      px-4 pb-[max(env(safe-area-inset-bottom),14px)]
-                      pointer-events-none"
-      >
+      <div className="right-0 bottom-0 left-0 z-50 fixed pb-[max(env(safe-area-inset-bottom),14px)] flex justify-center px-4 pointer-events-none">
         <nav
-          className="nav-bar pointer-events-auto flex items-center
-                     w-full max-w-95 p-2 gap-1"
+          className="flex items-center gap-1 p-2 w-full max-w-95 pointer-events-auto nav-bar"
           style={{
             background: "rgba(255,255,255,0.90)",
             backdropFilter: "blur(24px) saturate(200%)",
@@ -313,7 +239,7 @@ export default function Navbar() {
           }}
           aria-label="Main navigation"
         >
-          {items.map((item, idx) => {
+          {items.map((item) => {
             const { href, Icon, label, isFab, isLang } = item;
             const active = !isLang && !isFab && isActive(href);
 
@@ -324,24 +250,15 @@ export default function Navbar() {
                   key="fab"
                   href={href}
                   aria-label={label}
-                  className="group relative flex-1 flex flex-col items-center justify-center gap-1
-                             py-1.5 rounded-2xl
-                             active:scale-95
-                             transition-all duration-300 ease-[cubic-bezier(.34,1.56,.64,1)]"
+                  className="group relative flex flex-col flex-1 justify-center items-center gap-1 py-1.5 rounded-2xl active:scale-95 transition-all duration-300 ease-[cubic-bezier(.34,1.56,.64,1)]"
                 >
-                  {/* Elevated pill for FAB */}
                   <span
-                    className="flex items-center justify-center w-11 h-11 rounded-2xl
-                               group-hover:-translate-y-1 group-hover:scale-105
-                               group-active:scale-95 group-active:translate-y-0
-                               transition-all duration-300 ease-[cubic-bezier(.34,1.56,.64,1)]
-                               relative overflow-hidden"
+                    className="relative flex justify-center items-center rounded-2xl w-11 h-11 overflow-hidden group-active:scale-95 group-hover:scale-105 transition-all group-active:translate-y-0 group-hover:-translate-y-1 duration-300 ease-[cubic-bezier(.34,1.56,.64,1)]"
                     style={{
                       background: `linear-gradient(135deg, ${accent} 0%, ${accentDark} 100%)`,
                       boxShadow: `0 6px 20px ${accent}55, inset 0 1px 0 rgba(255,255,255,0.25)`,
                     }}
                   >
-                    {/* shine */}
                     <span
                       className="absolute inset-0 pointer-events-none"
                       style={{
@@ -353,12 +270,11 @@ export default function Navbar() {
                       size={20}
                       strokeWidth={2.4}
                       color="white"
-                      className="relative z-10 group-hover:rotate-90
-                                 transition-transform duration-350 ease-[cubic-bezier(.34,1.56,.64,1)]"
+                      className="z-10 relative group-hover:rotate-90 transition-transform duration-350 ease-[cubic-bezier(.34,1.56,.64,1)]"
                     />
                   </span>
                   <span
-                    className="text-[10px] font-semibold tracking-wide leading-none"
+                    className="font-semibold text-[10px] leading-none tracking-wide"
                     style={{ color: accent }}
                   >
                     {label}
@@ -372,16 +288,12 @@ export default function Navbar() {
               return (
                 <button
                   key="lang"
-                  onClick={toggleLang}
+                  onClick={handleToggleLang}
                   aria-label="Switch language"
-                  className="group flex-1 flex flex-col items-center justify-center gap-1
-                             py-1.5 rounded-2xl border-none cursor-pointer bg-transparent
-                             hover:-translate-y-0.5 active:scale-95
-                             transition-all duration-250 ease-[cubic-bezier(.34,1.56,.64,1)]"
+                  className="group flex flex-col flex-1 justify-center items-center gap-1 bg-transparent py-1.5 border-none rounded-2xl active:scale-95 transition-all hover:-translate-y-0.5 duration-250 ease-[cubic-bezier(.34,1.56,.64,1)] cursor-pointer"
                 >
                   <span
-                    className="flex items-center justify-center w-11 h-11 rounded-2xl
-                               transition-all duration-250"
+                    className="flex justify-center items-center rounded-2xl w-11 h-11 transition-all duration-250"
                     style={{
                       background: isAuthority
                         ? "rgba(99,102,241,0.08)"
@@ -423,10 +335,8 @@ export default function Navbar() {
                   "transition-all duration-250 ease-[cubic-bezier(.34,1.56,.64,1)]",
                 ].join(" ")}
               >
-                {/* Icon bubble — same 44×44 as FAB and lang */}
                 <span
-                  className="flex items-center justify-center w-11 h-11 rounded-2xl
-                             transition-all duration-250"
+                  className="flex justify-center items-center rounded-2xl w-11 h-11 transition-all duration-250"
                   style={{
                     background: active
                       ? isAuthority
@@ -459,9 +369,8 @@ export default function Navbar() {
                   />
                 </span>
 
-                {/* Label */}
                 <span
-                  className="text-[10px] font-semibold tracking-wide leading-none transition-colors duration-200"
+                  className="font-semibold text-[10px] leading-none tracking-wide transition-colors duration-200"
                   style={{
                     color: active
                       ? isAuthority
@@ -475,10 +384,9 @@ export default function Navbar() {
                   {label}
                 </span>
 
-                {/* Active indicator dot */}
                 {active && (
                   <span
-                    className="dot-pop absolute -bottom-0.5 left-1/2 w-1 h-1 rounded-full"
+                    className="-bottom-0.5 left-1/2 absolute rounded-full w-1 h-1 dot-pop"
                     style={{
                       transform: "translateX(-50%)",
                       background: isAuthority ? "#6366f1" : "#22c55e",

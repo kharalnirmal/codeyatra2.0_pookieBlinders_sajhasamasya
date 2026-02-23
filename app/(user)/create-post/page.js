@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
 import { DISTRICTS } from "@/lib/constants";
+import { useTranslation } from "@/lib/hooks/useTranslation";
 
 const LocationPicker = dynamic(
   () => import("@/components/posts/LocationPicker"),
@@ -27,21 +28,6 @@ const LocationPicker = dynamic(
     ),
   },
 );
-
-const CATEGORIES = [
-  { value: "road", label: "Road / Infrastructure" },
-  { value: "water", label: "Water Supply" },
-  { value: "electricity", label: "Electricity" },
-  { value: "garbage", label: "Garbage / Waste" },
-  { value: "safety", label: "Public Safety" },
-  { value: "other", label: "Other" },
-];
-
-const TARGET_GROUPS = [
-  { value: "authority", label: "Official Authority", icon: ShieldCheck },
-  { value: "volunteer", label: "Community Volunteers", icon: Zap },
-  { value: "both", label: "Both (Maximum reach)", icon: Send },
-];
 
 function compressImage(dataUrl, maxWidth = 800) {
   return new Promise((resolve) => {
@@ -76,6 +62,23 @@ const Label = ({ children, required }) => (
 export default function CreatePostPage() {
   const router = useRouter();
   const { isSignedIn } = useUser();
+  const { t } = useTranslation();
+
+  const CATEGORIES = [
+    { value: "road", label: t("cat.road") },
+    { value: "water", label: t("cat.water") },
+    { value: "electricity", label: t("cat.electricity") },
+    { value: "garbage", label: t("cat.garbage") },
+    { value: "safety", label: t("cat.safety") },
+    { value: "other", label: t("cat.other") },
+  ];
+
+  const TARGET_GROUPS = [
+    { value: "authority", label: t("target.authority"), icon: ShieldCheck },
+    { value: "volunteer", label: t("target.volunteer"), icon: Zap },
+    { value: "both", label: t("target.both"), icon: Send },
+  ];
+
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
@@ -150,11 +153,11 @@ export default function CreatePostPage() {
         }),
       });
       if (res.ok) {
-        toast.success("Report Submitted to Authorities");
+        toast.success(t("create.success"));
         router.push("/");
       }
     } catch (err) {
-      toast.error("Submission failed");
+      toast.error(t("create.fail"));
     } finally {
       setSubmitting(false);
     }
@@ -191,9 +194,9 @@ export default function CreatePostPage() {
           </button>
           <div className="text-center">
             <h1 className="text-[10px] font-black tracking-[0.3em] uppercase text-[#1d398f]/40">
-              Municipal Reporting
+              {t("create.header")}
             </h1>
-            <p className="font-bold text-[#1d398f]">File Incident Report</p>
+            <p className="font-bold text-[#1d398f]">{t("create.title")}</p>
           </div>
           <div className="w-10" />
         </div>
@@ -204,13 +207,13 @@ export default function CreatePostPage() {
         <div className="flex items-center gap-3 p-4 bg-[#e8000c]/5 border border-[#e8000c]/10 rounded-3xl">
           <AlertCircle className="w-5 h-5 text-[#e8000c] shrink-0" />
           <p className="text-[11px] font-bold text-[#e8000c] uppercase tracking-wider">
-            Reports are legally binding and sent to dispatch centers.
+            {t("create.warning")}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Visual Evidence Section */}
-          <SectionTitle number="01" title="Visual Evidence" />
+          <SectionTitle number="01" title={t("create.evidence")} />
           <div className="relative group">
             {capturedPhoto ? (
               <div className="relative overflow-hidden rounded-[2.5rem] shadow-2xl">
@@ -227,7 +230,7 @@ export default function CreatePostPage() {
                   }}
                   className="absolute bottom-6 right-6 bg-white/90 backdrop-blur-md text-[#e8000c] px-6 py-3 rounded-2xl text-xs font-black uppercase shadow-xl hover:bg-[#e8000c] hover:text-white transition-all"
                 >
-                  <RefreshCw className="w-4 h-4 inline mr-2" /> Retake Evidence
+                  <RefreshCw className="w-4 h-4 inline mr-2" /> {t("create.retake")}
                 </button>
               </div>
             ) : cameraActive ? (
@@ -264,51 +267,51 @@ export default function CreatePostPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-bold text-[#1d398f]">
-                    Launch Evidence Camera
+                    {t("create.launchCamera")}
                   </p>
                   <p className="text-[10px] text-slate-400 font-medium uppercase mt-1">
-                    High resolution capture
+                    {t("create.highRes")}
                   </p>
                 </div>
               </div>
             )}
           </div>
           {/* Details Section */}
-          <SectionTitle number="02" title="Report Specifications" />
+          <SectionTitle number="02" title={t("create.specs")} />
           <GlassCard className="space-y-6">
             <div>
-              <Label required>Title</Label>
+              <Label required>{t("create.titleLabel")}</Label>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
-                placeholder="e.g. Structural Hazard: Main St Bridge"
+                placeholder={t("create.titlePlaceholder")}
                 className="premium-input w-full px-5 py-4 rounded-2xl border-none text-sm font-bold text-[#1d398f]"
               />
             </div>
 
             <div>
-              <Label required>Description</Label>
+              <Label required>{t("create.descLabel")}</Label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
                 rows={4}
-                placeholder="Describe the report"
+                placeholder={t("create.descPlaceholder")}
                 className="premium-input w-full px-5 py-4 rounded-2xl border-none text-sm font-bold text-[#1d398f] resize-none"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label required>Category</Label>
+                <Label required>{t("create.categoryLabel")}</Label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   required
                   className="premium-input w-full px-5 py-4 rounded-2xl border-none text-sm font-bold text-[#1d398f] appearance-none cursor-pointer"
                 >
-                  <option value="">Classification</option>
+                  <option value="">{t("create.categoryPlaceholder")}</option>
                   {CATEGORIES.map((c) => (
                     <option key={c.value} value={c.value}>
                       {c.label}
@@ -317,14 +320,14 @@ export default function CreatePostPage() {
                 </select>
               </div>
               <div>
-                <Label required>District</Label>
+                <Label required>{t("create.districtLabel")}</Label>
                 <select
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
                   required
                   className="premium-input w-full px-5 py-4 rounded-2xl border-none text-sm font-bold text-[#1d398f] appearance-none cursor-pointer"
                 >
-                  <option value="">Locality</option>
+                  <option value="">{t("create.districtPlaceholder")}</option>
                   {DISTRICTS.map((d) => (
                     <option key={d} value={d}>
                       {d}
@@ -335,7 +338,7 @@ export default function CreatePostPage() {
             </div>
           </GlassCard>
           {/* Target Group Section */}
-          <SectionTitle number="03" title="Target Authorities" />
+          <SectionTitle number="03" title={t("create.targetTitle")} />
           <div className="grid grid-cols-1 gap-3">
             {TARGET_GROUPS.map((tg) => {
               const Icon = tg.icon;
@@ -376,7 +379,7 @@ export default function CreatePostPage() {
               );
             })}
           </div>
-          <SectionTitle number="04" title="Location" />
+          <SectionTitle number="04" title={t("create.location")} />
           <div className="overflow-hidden shadow-2xl border-4 border-white">
             <LocationPicker value={location} onChange={setLocation} />
           </div>
@@ -394,7 +397,7 @@ export default function CreatePostPage() {
                 ) : (
                   <>
                     <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                    <span>Broadcast Report</span>
+                    <span>{t("create.submit")}</span>
                   </>
                 )}
               </div>

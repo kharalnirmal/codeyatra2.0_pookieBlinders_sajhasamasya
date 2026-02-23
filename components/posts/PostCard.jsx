@@ -17,6 +17,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
+import { useTranslation } from "@/lib/hooks/useTranslation";
 
 const CATEGORY_COLORS = {
   road: "bg-orange-100 text-orange-700",
@@ -60,6 +61,7 @@ function timeAgo(dateStr) {
 
 export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
   const { user, isSignedIn } = useUser();
+  const { t } = useTranslation();
 
   // Check if current user is the post author or an authority
   const isAuthor = isSignedIn && user && post.author?.clerkId === user.id;
@@ -149,6 +151,12 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
   };
 
   const status = STATUS_INFO[post.samasyaStatus] || STATUS_INFO.pending;
+  const statusLabels = {
+    pending: t("post.pending"),
+    in_progress: t("post.inProgress"),
+    completed: t("post.resolved"),
+  };
+  const statusLabel = statusLabels[post.samasyaStatus] || t("post.pending");
   const StatusIcon = status.icon;
   const authorName = post.author?.name || "Anonymous";
   const authorAvatar = post.author?.avatar || null;
@@ -214,7 +222,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
               <StatusIcon
                 className={`w-3 h-3 ${status.spin ? "animate-spin" : ""}`}
               />
-              {status.label}
+              {statusLabel}
             </span>
           </div>
         </div>
@@ -238,7 +246,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
           </span>
           <span className="bg-gray-100 px-2 py-0.5 rounded-full text-gray-500 text-xs capitalize">
             {post.targetGroup === "both"
-              ? "Authority + Volunteers"
+              ? t("post.authorityVolunteer")
               : post.targetGroup}
           </span>
         </div>
@@ -255,7 +263,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
         {post.authorityResponse && (
           <div className="bg-blue-50 px-3 py-2 border border-blue-100 rounded-xl">
             <p className="text-blue-700 text-xs">
-              <span className="font-semibold">Authority: </span>
+              <span className="font-semibold">{t("post.authority")}: </span>
               {post.authorityResponse}
             </p>
           </div>
@@ -311,7 +319,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
 
             {!loadingComments && comments.length === 0 && (
               <p className="py-2 text-gray-400 text-xs text-center">
-                No comments yet.
+                {t("post.noComments")}
               </p>
             )}
 
@@ -350,7 +358,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
                   type="text"
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Write a comment…"
+                  placeholder={t("post.writeComment")}
                   maxLength={500}
                   className="flex-1 bg-gray-50 px-3 py-2 border border-gray-200 focus:border-primary rounded-xl focus:outline-none text-sm"
                 />
@@ -368,7 +376,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
               </form>
             ) : (
               <p className="py-1 text-gray-400 text-xs text-center">
-                Sign in to comment
+                {t("post.signInComment")}
               </p>
             )}
           </div>

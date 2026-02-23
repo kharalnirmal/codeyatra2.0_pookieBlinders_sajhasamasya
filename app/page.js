@@ -5,8 +5,10 @@ import Loader from "@/components/ui/Loader";
 import PostCard from "@/components/posts/PostCard";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
+import { useTranslation } from "@/lib/hooks/useTranslation";
 
 export default function Home() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState([]);
   const [fetchError, setFetchError] = useState("");
@@ -43,7 +45,7 @@ export default function Home() {
       >
         {/* Feed header */}
         <div className="flex justify-between items-center px-4 pt-4 pb-2">
-          <h2 className="font-bold text-gray-800 text-lg">Community Issues</h2>
+          <h2 className="font-bold text-gray-800 text-lg">{t("home.title")}</h2>
           <button
             onClick={() => fetchPosts(true)}
             disabled={refreshing}
@@ -53,7 +55,7 @@ export default function Home() {
             <RefreshCw
               className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
             />
-            Refresh
+            {t("home.refresh")}
           </button>
         </div>
 
@@ -74,8 +76,8 @@ export default function Home() {
           </div>
         ) : !fetchError ? (
           <div className="flex flex-col justify-center items-center gap-3 mt-20 text-gray-400">
-            <p className="text-base">No issues reported yet.</p>
-            <p className="text-sm">Be the first to report a community issue!</p>
+            <p className="text-base">{t("home.noIssues")}</p>
+            <p className="text-sm">{t("home.beFirst")}</p>
           </div>
         ) : null}
       </main>
