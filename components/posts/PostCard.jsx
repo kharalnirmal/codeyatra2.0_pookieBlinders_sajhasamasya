@@ -9,48 +9,40 @@ import {
   Clock,
   ThumbsUp,
   Users,
-  CheckCircle,
   Loader2,
   MessageSquare,
   Send,
   ChevronDown,
   ChevronUp,
-  Zap,
 } from "lucide-react";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 import { useTranslation } from "@/lib/hooks/useTranslation";
 
 /* ─── palette ──────────────────────────────────────────────────────────── */
 const CATEGORY_STYLES = {
-  road:        { pill: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",    dot: "bg-amber-400" },
-  water:       { pill: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",          dot: "bg-sky-400" },
-  electricity: { pill: "bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200", dot: "bg-yellow-400" },
-  garbage:     { pill: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200", dot: "bg-emerald-400" },
-  safety:      { pill: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",       dot: "bg-rose-400" },
-  other:       { pill: "bg-slate-50 text-slate-500 ring-1 ring-slate-200",    dot: "bg-slate-400" },
-};
-
-const STATUS_INFO = {
-  pending: {
-    label: "Pending",
-    icon: Clock,
-    style: "bg-amber-50 text-amber-600 ring-1 ring-amber-200",
-    glow: "shadow-amber-100",
-    spin: false,
+  road: {
+    pill: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+    dot: "bg-amber-400",
   },
-  in_progress: {
-    label: "In Progress",
-    icon: Loader2,
-    style: "bg-blue-50 text-blue-600 ring-1 ring-blue-200",
-    glow: "shadow-blue-100",
-    spin: true,
+  water: {
+    pill: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
+    dot: "bg-sky-400",
   },
-  completed: {
-    label: "Resolved",
-    icon: CheckCircle,
-    style: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200",
-    glow: "shadow-emerald-100",
-    spin: false,
+  electricity: {
+    pill: "bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200",
+    dot: "bg-yellow-400",
+  },
+  garbage: {
+    pill: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+    dot: "bg-emerald-400",
+  },
+  safety: {
+    pill: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
+    dot: "bg-rose-400",
+  },
+  other: {
+    pill: "bg-slate-50 text-slate-500 ring-1 ring-slate-200",
+    dot: "bg-slate-400",
   },
 };
 
@@ -98,8 +90,8 @@ function Comment({ c, index }) {
     >
       <Avatar src={c.author?.avatar} name={c.author?.name} size={7} />
       <div className="flex-1 min-w-0">
-        <div className="bg-slate-50 rounded-2xl rounded-tl-sm px-3.5 py-2.5 border border-slate-100">
-          <p className="text-[11px] font-semibold text-slate-500 mb-0.5 tracking-wide uppercase">
+        <div className="bg-slate-50 px-3.5 py-2.5 border border-slate-100 rounded-2xl rounded-tl-sm">
+          <p className="mb-0.5 font-semibold text-[11px] text-slate-500 uppercase tracking-wide">
             {c.author?.name}
           </p>
           <p className="text-slate-700 text-sm leading-relaxed">{c.text}</p>
@@ -114,23 +106,23 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
   const { user, isSignedIn } = useUser();
   const { t } = useTranslation();
 
-  const isAuthor    = isSignedIn && user && post.author?.clerkId === user.id;
+  const isAuthor = isSignedIn && user && post.author?.clerkId === user.id;
   const isAuthority = isSignedIn && user?.publicMetadata?.role === "authority";
-  const canManage   = isAuthor || isAuthority;
+  const canManage = isAuthor || isAuthority;
 
   /* like state */
   const [likeCount, setLikeCount] = useState(post.likes?.length || 0);
-  const [liked,     setLiked]     = useState(false);
-  const [liking,    setLiking]    = useState(false);
-  const [likePop,   setLikePop]   = useState(false);
+  const [liked, setLiked] = useState(false);
+  const [liking, setLiking] = useState(false);
+  const [likePop, setLikePop] = useState(false);
 
   /* comment state */
-  const [commentOpen,      setCommentOpen]      = useState(false);
-  const [comments,         setComments]         = useState([]);
-  const [commentsLoaded,   setCommentsLoaded]   = useState(false);
-  const [loadingComments,  setLoadingComments]  = useState(false);
-  const [commentText,      setCommentText]      = useState("");
-  const [submittingComment,setSubmittingComment]= useState(false);
+  const [commentOpen, setCommentOpen] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   const inputRef = useRef(null);
 
@@ -144,7 +136,9 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
     setTimeout(() => setLikePop(false), 400);
     setLiking(true);
     try {
-      const res  = await fetch(`/api/posts/${post._id}/like`, { method: "POST" });
+      const res = await fetch(`/api/posts/${post._id}/like`, {
+        method: "POST",
+      });
       const data = await res.json();
       if (!res.ok) throw new Error();
       setLiked(data.liked);
@@ -159,7 +153,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
 
   const refreshComments = useCallback(async () => {
     try {
-      const res  = await fetch(`/api/posts/${post._id}/comments`);
+      const res = await fetch(`/api/posts/${post._id}/comments`);
       const data = await res.json();
       setComments(data.comments || []);
       setCommentsLoaded(true);
@@ -187,7 +181,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
     if (!commentText.trim() || !isSignedIn || submittingComment) return;
     setSubmittingComment(true);
     try {
-      const res  = await fetch(`/api/posts/${post._id}/comments`, {
+      const res = await fetch(`/api/posts/${post._id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: commentText.trim() }),
@@ -202,18 +196,9 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
     }
   };
 
-  const status      = STATUS_INFO[post.samasyaStatus] || STATUS_INFO.pending;
-  const StatusIcon  = status.icon;
-  const catStyle    = CATEGORY_STYLES[post.category] || CATEGORY_STYLES.other;
-  const authorName  = post.author?.name || "Anonymous";
-  const authorAvatar= post.author?.avatar || null;
-
-  const statusLabels = {
-    pending:     t("post.pending"),
-    in_progress: t("post.inProgress"),
-    completed:   t("post.resolved"),
-  };
-  const statusLabel = statusLabels[post.samasyaStatus] || t("post.pending");
+  const catStyle = CATEGORY_STYLES[post.category] || CATEGORY_STYLES.other;
+  const authorName = post.author?.name || "Anonymous";
+  const authorAvatar = post.author?.avatar || null;
 
   return (
     <>
@@ -242,53 +227,41 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
         .animate-pop      { animation: pop 0.38s cubic-bezier(.4,0,.2,1); }
       `}</style>
 
-      <article
-        className="group relative bg-white border border-slate-100 rounded-3xl overflow-hidden
-          shadow-sm hover:shadow-xl hover:shadow-slate-200/80
-          transition-all duration-500 ease-out
-          hover:-translate-y-0.5"
-      >
+      <article className="group relative bg-white shadow-sm hover:shadow-slate-200/80 hover:shadow-xl border border-slate-100 rounded-3xl overflow-hidden transition-all hover:-translate-y-0.5 duration-500 ease-out">
         {/* ── Photo with gradient veil ── */}
         {post.photo && (
-          <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/9" }}>
+          <div
+            className="relative w-full overflow-hidden"
+            style={{ aspectRatio: "16/9" }}
+          >
             <Image
               src={post.photo}
               alt={post.title}
               fill
-              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+              className="object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
               sizes="(max-width: 640px) 100vw, 640px"
             />
             {/* gradient veil */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-            {/* status badge floating on image */}
-            <span
-              className={`absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1
-                rounded-full text-[11px] font-semibold backdrop-blur-md
-                bg-white/80 shadow-lg border border-white/60 ${status.style}`}
-            >
-              <StatusIcon className={`w-3 h-3 ${status.spin ? "animate-spin" : ""}`} />
-              {statusLabel}
-            </span>
           </div>
         )}
 
-        <div className="p-5 space-y-4">
-
+        <div className="space-y-4 p-5">
           {/* ── Header ── */}
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex justify-between items-start gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative shrink-0">
                 <Avatar src={authorAvatar} name={authorName} size={9} />
                 {/* online-style ring pulse when post is recent */}
                 {Date.now() - new Date(post.createdAt).getTime() < 3600000 && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-white" />
+                  <span className="-right-0.5 -bottom-0.5 absolute bg-emerald-400 rounded-full ring-2 ring-white w-2.5 h-2.5" />
                 )}
               </div>
               <div className="min-w-0">
                 <p className="font-semibold text-slate-800 text-sm truncate leading-tight">
                   {authorName}
                 </p>
-                <p className="text-slate-400 text-xs mt-0.5 flex items-center gap-1">
+                <p className="flex items-center gap-1 mt-0.5 text-slate-400 text-xs">
                   <Clock className="w-3 h-3" />
                   {timeAgo(post.createdAt)}
                 </p>
@@ -303,16 +276,6 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
                   onDeleted={onPostDeleted}
                 />
               )}
-              {/* Status badge (only shown here if no photo) */}
-              {!post.photo && (
-                <span
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full
-                    text-[11px] font-semibold ${status.style} shadow-sm`}
-                >
-                  <StatusIcon className={`w-3 h-3 ${status.spin ? "animate-spin" : ""}`} />
-                  {statusLabel}
-                </span>
-              )}
             </div>
           </div>
 
@@ -321,28 +284,31 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
             <h3 className="font-bold text-slate-900 text-base leading-snug tracking-tight">
               {post.title}
             </h3>
-            <p className="mt-1.5 text-slate-500 text-sm leading-relaxed line-clamp-2">
+            <p className="mt-1.5 text-slate-500 text-sm line-clamp-2 leading-relaxed">
               {post.description}
             </p>
           </div>
 
           {/* ── Tags ── */}
           <div className="flex flex-wrap gap-2">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize ${catStyle.pill}`}>
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize ${catStyle.pill}`}
+            >
               <span className={`w-1.5 h-1.5 rounded-full ${catStyle.dot}`} />
               {post.category}
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
-              bg-slate-50 text-slate-500 ring-1 ring-slate-200 capitalize">
+            <span className="inline-flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-full ring-1 ring-slate-200 font-medium text-slate-500 text-xs capitalize">
               <Users className="w-3 h-3" />
-              {post.targetGroup === "both" ? t("post.authorityVolunteer") : post.targetGroup}
+              {post.targetGroup === "both"
+                ? t("post.authorityVolunteer")
+                : post.targetGroup}
             </span>
           </div>
 
           {/* ── Location ── */}
           {post.location?.address && (
             <div className="flex items-center gap-1.5 text-slate-400 text-xs">
-              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100">
+              <div className="flex justify-center items-center bg-slate-100 rounded-full w-5 h-5">
                 <MapPin className="w-3 h-3 text-slate-500" />
               </div>
               <span className="truncate">{post.location.address}</span>
@@ -351,12 +317,11 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
 
           {/* ── Authority response ── */}
           {post.authorityResponse && (
-            <div className="relative overflow-hidden bg-gradient-to-r from-blue-50 to-indigo-50
-              border border-blue-100 rounded-2xl px-4 py-3">
+            <div className="relative bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border border-blue-100 rounded-2xl overflow-hidden">
               {/* decorative bar */}
-              <div className="absolute left-0 inset-y-0 w-1 bg-gradient-to-b from-blue-400 to-indigo-500 rounded-full" />
-              <p className="text-blue-700 text-xs leading-relaxed pl-2">
-                <span className="font-bold uppercase tracking-wide text-blue-500 text-[10px]">
+              <div className="left-0 absolute inset-y-0 bg-gradient-to-b from-blue-400 to-indigo-500 rounded-full w-1" />
+              <p className="pl-2 text-blue-700 text-xs leading-relaxed">
+                <span className="font-bold text-[10px] text-blue-500 uppercase tracking-wide">
                   {t("post.authority")} ·
                 </span>{" "}
                 {post.authorityResponse}
@@ -365,20 +330,20 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
           )}
 
           {/* ── Divider ── */}
-          <div className="h-px bg-gradient-to-r from-transparent via-slate-100 to-transparent" />
+          <div className="bg-gradient-to-r from-transparent via-slate-100 to-transparent h-px" />
 
           {/* ── Action row ── */}
           <div className="flex items-center gap-1">
-
             {/* Like */}
             <button
               onClick={handleLike}
               disabled={!isSignedIn || liking}
               className={`group/like flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-semibold
                 transition-all duration-200 ease-out disabled:opacity-40 select-none
-                ${liked
-                  ? "bg-rose-50 text-rose-500 ring-1 ring-rose-200 hover:bg-rose-100"
-                  : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                ${
+                  liked
+                    ? "bg-rose-50 text-rose-500 ring-1 ring-rose-200 hover:bg-rose-100"
+                    : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
                 }`}
             >
               <ThumbsUp
@@ -394,36 +359,38 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
               onClick={toggleComments}
               className={`flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-semibold
                 transition-all duration-200 ease-out select-none
-                ${commentOpen
-                  ? "bg-slate-100 text-slate-700"
-                  : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                ${
+                  commentOpen
+                    ? "bg-slate-100 text-slate-700"
+                    : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
                 }`}
             >
               <MessageSquare className="w-4 h-4" />
               {commentsLoaded && comments.length > 0 && (
                 <span className="tabular-nums">{comments.length}</span>
               )}
-              {commentOpen
-                ? <ChevronUp  className="w-3.5 h-3.5 transition-transform duration-200" />
-                : <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" />
-              }
+              {commentOpen ? (
+                <ChevronUp className="w-3.5 h-3.5 transition-transform duration-200" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" />
+              )}
             </button>
 
             {/* Volunteers */}
-            <div className="flex items-center gap-1.5 ml-auto px-2.5 py-1.5 rounded-xl
-              bg-slate-50 text-slate-400 text-xs font-medium">
+            <div className="flex items-center gap-1.5 bg-slate-50 ml-auto px-2.5 py-1.5 rounded-xl font-medium text-slate-400 text-xs">
               <Users className="w-3.5 h-3.5" />
-              <span className="tabular-nums">{post.volunteers?.length || 0}</span>
+              <span className="tabular-nums">
+                {post.volunteers?.length || 0}
+              </span>
             </div>
           </div>
 
           {/* ── Comments ── */}
           {commentOpen && (
-            <div className="animate-slide-down space-y-3 pt-1 overflow-hidden">
-
+            <div className="space-y-3 pt-1 overflow-hidden animate-slide-down">
               {/* loading */}
               {loadingComments && (
-                <div className="flex items-center justify-center gap-2 py-4 text-slate-300">
+                <div className="flex justify-center items-center gap-2 py-4 text-slate-300">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span className="text-xs">Loading…</span>
                 </div>
@@ -455,33 +422,27 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder={t("post.writeComment")}
                     maxLength={500}
-                    className="flex-1 bg-slate-50 border border-slate-200 text-sm text-slate-800
-                      placeholder-slate-400 px-4 py-2.5 rounded-2xl
-                      focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300
-                      transition-all duration-200"
+                    className="flex-1 bg-slate-50 px-4 py-2.5 border border-slate-200 focus:border-slate-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-slate-300 text-slate-800 text-sm transition-all duration-200 placeholder-slate-400"
                   />
                   <button
                     type="submit"
                     disabled={!commentText.trim() || submittingComment}
-                    className="flex items-center justify-center w-10 h-10 rounded-2xl shrink-0
-                      bg-slate-800 hover:bg-slate-700 disabled:opacity-40
-                      text-white shadow-sm hover:shadow-md
-                      transition-all duration-200 active:scale-95"
+                    className="flex justify-center items-center bg-slate-800 hover:bg-slate-700 disabled:opacity-40 shadow-sm hover:shadow-md rounded-2xl w-10 h-10 text-white active:scale-95 transition-all duration-200 shrink-0"
                   >
-                    {submittingComment
-                      ? <Loader2 className="w-4 h-4 animate-spin" />
-                      : <Send className="w-4 h-4" />
-                    }
+                    {submittingComment ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
                   </button>
                 </form>
               ) : (
-                <p className="text-center text-xs text-slate-400 py-2">
+                <p className="py-2 text-slate-400 text-xs text-center">
                   {t("post.signInComment")}
                 </p>
               )}
             </div>
           )}
-
         </div>
       </article>
     </>

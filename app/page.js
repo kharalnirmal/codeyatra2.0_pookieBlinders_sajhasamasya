@@ -7,29 +7,13 @@ import {
   Leaf,
   ArrowRight,
   Search,
-  SlidersHorizontal,
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  Users,
-  X,
+  MapPin,
   AlertTriangle,
 } from "lucide-react";
-import Link from "next/link";
 
 import PostCard from "@/components/posts/PostCard";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 import { useTranslation } from "@/lib/hooks/useTranslation";
-import { CATEGORIES } from "@/lib/constants";
-
-const CATEGORY_ICONS = {
-  road: "🛣️",
-  water: "💧",
-  electricity: "⚡",
-  garbage: "🗑️",
-  safety: "🛡️",
-  other: "📋",
-};
 
 export default function HomePage() {
   const { isSignedIn } = useUser();
@@ -39,11 +23,7 @@ export default function HomePage() {
   const [fetchError, setFetchError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  // Filters
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [sortBy, setSortBy] = useState("latest");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState("all");
 
   const fetchPosts = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);
@@ -78,62 +58,25 @@ export default function HomePage() {
     setPosts((prev) => prev.filter((p) => p._id !== deletedId));
   };
 
-  // Derived stats
-  const stats = useMemo(() => {
-    const active = posts.filter((p) => p.samasyaStatus !== "completed").length;
-    const resolved = posts.filter(
-      (p) => p.samasyaStatus === "completed",
-    ).length;
-    const totalVolunteers = posts.reduce(
-      (sum, p) => sum + (p.volunteers?.length || 0),
-      0,
-    );
-    return { active, resolved, totalVolunteers, total: posts.length };
-  }, [posts]);
-
-  // Category counts
-  const categoryCounts = useMemo(() => {
-    const counts = { all: posts.length };
-    CATEGORIES.forEach((c) => {
-      counts[c] = posts.filter((p) => p.category === c).length;
+  const locationOptions = useMemo(() => {
+    const uniqueDistricts = new Set();
+    posts.forEach((post) => {
+      const district = post.district?.trim();
+      if (district) uniqueDistricts.add(district);
     });
-    return counts;
+    return Array.from(uniqueDistricts).sort((a, b) => a.localeCompare(b));
   }, [posts]);
 
-  // Filtered + sorted posts
+  // Filtered posts
   const filteredPosts = useMemo(() => {
     let result = [...posts];
 
-    if (selectedCategory !== "all") {
-      result = result.filter((p) => p.category === selectedCategory);
+    if (selectedLocation !== "all") {
+      result = result.filter((p) => p.district?.trim() === selectedLocation);
     }
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.title?.toLowerCase().includes(q) ||
-          p.description?.toLowerCase().includes(q) ||
-          p.location?.address?.toLowerCase().includes(q),
-      );
-    }
-
-    if (sortBy === "trending") {
-      result.sort(
-        (a, b) =>
-          (b.likes?.length || 0) +
-          (b.volunteers?.length || 0) -
-          ((a.likes?.length || 0) + (a.volunteers?.length || 0)),
-      );
-    } else if (sortBy === "volunteers") {
-      result.sort(
-        (a, b) => (b.volunteers?.length || 0) - (a.volunteers?.length || 0),
-      );
-    }
-    // "latest" is default from API (newest first)
 
     return result;
-  }, [posts, selectedCategory, sortBy, searchQuery]);
+  }, [posts, selectedLocation]);
 
   return (
     <>
@@ -187,142 +130,26 @@ export default function HomePage() {
           ═══════════════════════════════════ */}
           {isSignedIn && (
             <div className="space-y-0">
-              {/* ── Quick stats strip ── */}
-              <div className="bg-white border-b border-slate-100">
-                <div className="max-w-lg mx-auto px-4 py-3">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-1.5 text-amber-500 mb-0.5">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        <span className="font-bold text-lg leading-none">
-                          {stats.active}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        {t("home.statsActive")}
-                      </p>
-                    </div>
-                    <div className="text-center border-x border-slate-100">
-                      <div className="flex items-center justify-center gap-1.5 text-emerald-500 mb-0.5">
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        <span className="font-bold text-lg leading-none">
-                          {stats.resolved}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        {t("home.statsResolved")}
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-1.5 text-blue-500 mb-0.5">
-                        <Users className="w-3.5 h-3.5" />
-                        <span className="font-bold text-lg leading-none">
-                          {stats.totalVolunteers}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        {t("home.statsVolunteers")}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Category filter pills ── */}
-              <div className="bg-white border-b border-slate-100">
-                <div className="max-w-lg mx-auto px-4 py-3">
-                  <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                    <button
-                      onClick={() => setSelectedCategory("all")}
-                      className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
-                        selectedCategory === "all"
-                          ? "bg-slate-800 text-white shadow-sm"
-                          : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                      }`}
-                    >
-                      {t("home.allCategories")}
-                      <span
-                        className={`text-[10px] px-1 py-0.5 rounded-full ${
-                          selectedCategory === "all"
-                            ? "bg-white/20"
-                            : "bg-slate-200"
-                        }`}
-                      >
-                        {categoryCounts.all}
-                      </span>
-                    </button>
-                    {CATEGORIES.map((cat) => (
-                      <button
-                        key={cat}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-all duration-200 ${
-                          selectedCategory === cat
-                            ? "bg-slate-800 text-white shadow-sm"
-                            : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                        }`}
-                      >
-                        <span>{CATEGORY_ICONS[cat]}</span>
-                        {cat}
-                        {categoryCounts[cat] > 0 && (
-                          <span
-                            className={`text-[10px] px-1 py-0.5 rounded-full ${
-                              selectedCategory === cat
-                                ? "bg-white/20"
-                                : "bg-slate-200"
-                            }`}
-                          >
-                            {categoryCounts[cat]}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Sort tabs + search ── */}
+              {/* ── Location filter dropdown ── */}
               <div className="max-w-lg mx-auto px-4 pt-4 pb-2">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg flex-1">
-                    {[
-                      { key: "latest", icon: Clock, label: t("home.latest") },
-                      {
-                        key: "trending",
-                        icon: TrendingUp,
-                        label: t("home.trending"),
-                      },
-                      {
-                        key: "volunteers",
-                        icon: Users,
-                        label: t("home.volunteers"),
-                      },
-                    ].map((tab) => (
-                      <button
-                        key={tab.key}
-                        onClick={() => setSortBy(tab.key)}
-                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-medium transition-all duration-200 ${
-                          sortBy === tab.key
-                            ? "bg-white shadow-sm text-slate-800"
-                            : "text-slate-400 hover:text-slate-600"
-                        }`}
-                      >
-                        <tab.icon className="w-3 h-3" />
-                        {tab.label}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-2 flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2">
+                    <MapPin className="w-4 h-4 text-slate-400" />
+                    <select
+                      value={selectedLocation}
+                      onChange={(e) => setSelectedLocation(e.target.value)}
+                      className="w-full bg-transparent text-sm text-slate-700 focus:outline-none"
+                    >
+                      <option value="all">All locations</option>
+                      {locationOptions.map((location) => (
+                        <option key={location} value={location}>
+                          {location}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => setSearchOpen(!searchOpen)}
-                      className={`p-2 rounded-lg transition-all duration-200 ${
-                        searchOpen
-                          ? "bg-slate-800 text-white"
-                          : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                      }`}
-                    >
-                      <Search className="w-4 h-4" />
-                    </button>
                     <button
                       onClick={() => fetchPosts(true)}
                       disabled={refreshing}
@@ -335,39 +162,11 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Search bar (expandable) */}
-                {searchOpen && (
-                  <div className="mt-2 flex items-center gap-2 animate-in slide-in-from-top-2 duration-200">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search issues..."
-                        autoFocus
-                        className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 transition"
-                      />
-                    </div>
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                )}
-
                 {/* Results count */}
-                {(selectedCategory !== "all" || searchQuery) && (
+                {selectedLocation !== "all" && (
                   <p className="mt-2 text-[11px] text-slate-400 font-medium">
                     {filteredPosts.length} {t("home.issuesCount")}
-                    {selectedCategory !== "all" && (
-                      <span className="capitalize"> · {selectedCategory}</span>
-                    )}
-                    {searchQuery && <span> · &ldquo;{searchQuery}&rdquo;</span>}
+                    <span> · {selectedLocation}</span>
                   </p>
                 )}
               </div>
@@ -392,25 +191,22 @@ export default function HomePage() {
                     </div>
                     <div>
                       <p className="text-slate-500 text-sm font-medium">
-                        {searchQuery || selectedCategory !== "all"
+                        {selectedLocation !== "all"
                           ? "No matching issues found"
                           : t("home.noIssues")}
                       </p>
                       <p className="text-slate-400 text-xs mt-1">
-                        {searchQuery || selectedCategory !== "all"
-                          ? "Try adjusting your filters"
+                        {selectedLocation !== "all"
+                          ? "Try selecting a different location"
                           : t("home.beFirst")}
                       </p>
                     </div>
-                    {(searchQuery || selectedCategory !== "all") && (
+                    {selectedLocation !== "all" && (
                       <button
-                        onClick={() => {
-                          setSearchQuery("");
-                          setSelectedCategory("all");
-                        }}
+                        onClick={() => setSelectedLocation("all")}
                         className="px-4 py-2 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200 transition"
                       >
-                        Clear filters
+                        Clear location filter
                       </button>
                     )}
                   </div>
