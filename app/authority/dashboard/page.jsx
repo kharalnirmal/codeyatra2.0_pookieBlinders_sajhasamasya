@@ -24,6 +24,20 @@ import {
 import { toast } from "sonner";
 import { DISTRICTS, CATEGORIES } from "@/lib/constants";
 import PostActionsMenu from "@/components/posts/PostActionsMenu";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  AreaChart,
+  Area,
+} from "recharts";
 
 const CATEGORY_COLORS = {
   road: "bg-orange-100 text-orange-700",
@@ -32,6 +46,22 @@ const CATEGORY_COLORS = {
   garbage: "bg-green-100 text-green-700",
   safety: "bg-red-100 text-red-700",
   other: "bg-gray-100 text-gray-600",
+};
+
+const CATEGORY_HEX = {
+  road: "#f97316",
+  water: "#3b82f6",
+  electricity: "#eab308",
+  garbage: "#22c55e",
+  safety: "#ef4444",
+  other: "#6b7280",
+};
+
+const STATUS_PIE_COLORS = {
+  Pending: "#eab308",
+  Active: "#3b82f6",
+  Resolved: "#22c55e",
+  Overdue: "#ef4444",
 };
 
 function RatingStars({ rating }) {
@@ -204,6 +234,49 @@ export default function AuthorityDashboard() {
   }
 
   const { posts = [], stats = {}, authority } = data || {};
+
+  /* ── Derive chart data from posts ── */
+  const statusChartData = [
+    { name: "Pending", value: stats.pending ?? 0 },
+    { name: "Active", value: stats.inProgress ?? 0 },
+    { name: "Resolved", value: stats.completed ?? 0 },
+    { name: "Overdue", value: stats.overdue ?? 0 },
+  ].filter((d) => d.value > 0);
+
+  const categoryChartData = CATEGORIES.map((cat) => ({
+    name: cat.charAt(0).toUpperCase() + cat.slice(1),
+    count: posts.filter((p) => p.category === cat).length,
+    fill: CATEGORY_HEX[cat] || "#6b7280",
+  })).filter((d) => d.count > 0);
+
+  /* ── 7-day trend data (reported vs resolved per day) ── */
+  const trendData = (() => {
+    const days = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10); // YYYY-MM-DD
+      const label = d.toLocaleDateString("en", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+      const reported = posts.filter(
+        (p) => p.createdAt && p.createdAt.slice(0, 10) === dateStr,
+      ).length;
+      const resolved = posts.filter(
+        (p) =>
+          p.samasyaStatus === "completed" &&
+          p.respondedAt &&
+          p.respondedAt.slice(0, 10) === dateStr,
+      ).length;
+      days.push({ date: label, Reported: reported, Resolved: resolved });
+    }
+    return days;
+  })();
+
+  const hasTrendData = trendData.some((d) => d.Reported > 0 || d.Resolved > 0);
 
   return (
     <div className="bg-gray-50 pb-28 min-h-screen">
@@ -384,6 +457,293 @@ export default function AuthorityDashboard() {
             </div>
           ))}
         </div>
+
+        {/* ── Charts Section ── */}
+        {(statusChartData.length > 0 || categoryChartData.length > 0) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Status Distribution — Donut */}
+            {statusChartData.length > 0 && (
+              <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
+                  Status Distribution
+                </h4>
+                <div className="relative" style={{ height: 180 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={statusChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={48}
+                        outerRadius={72}
+                        paddingAngle={3}
+                        dataKey="value"
+                        strokeWidth={0}
+                        animationBegin={0}
+                        animationDuration={800}
+                      >
+                        {statusChartData.map((entry) => (
+                          <Cell
+                            key={entry.name}
+                            fill={STATUS_PIE_COLORS[entry.name]}
+                            className="drop-shadow-sm"
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          background: "rgba(255,255,255,0.95)",
+                          backdropFilter: "blur(8px)",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "12px",
+                          boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                          padding: "8px 12px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                        }}
+                        itemStyle={{ color: "#374151" }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Center label */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-2xl font-extrabold text-gray-900 leading-none">
+                      {stats.total ?? 0}
+                    </span>
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mt-0.5">
+                      Total
+                    </span>
+                  </div>
+                </div>
+                {/* Legend */}
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3">
+                  {statusChartData.map((entry) => (
+                    <div key={entry.name} className="flex items-center gap-1.5">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ background: STATUS_PIE_COLORS[entry.name] }}
+                      />
+                      <span className="text-[11px] text-gray-600 font-medium">
+                        {entry.name}{" "}
+                        <span className="text-gray-400">({entry.value})</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Category Breakdown — Bar Chart */}
+            {categoryChartData.length > 0 && (
+              <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
+                  By Category
+                </h4>
+                <div style={{ height: 180 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={categoryChartData}
+                      layout="vertical"
+                      margin={{ top: 0, right: 4, bottom: 0, left: 0 }}
+                      barCategoryGap="20%"
+                    >
+                      <CartesianGrid
+                        horizontal={false}
+                        strokeDasharray="3 3"
+                        stroke="#f1f5f9"
+                      />
+                      <XAxis
+                        type="number"
+                        allowDecimals={false}
+                        tick={{ fontSize: 10, fill: "#9ca3af" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        tick={{
+                          fontSize: 11,
+                          fill: "#4b5563",
+                          fontWeight: 600,
+                        }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={72}
+                      />
+                      <Tooltip
+                        cursor={{ fill: "rgba(99,102,241,0.06)", radius: 8 }}
+                        contentStyle={{
+                          background: "rgba(255,255,255,0.95)",
+                          backdropFilter: "blur(8px)",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "12px",
+                          boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                          padding: "8px 12px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                        }}
+                        itemStyle={{ color: "#374151" }}
+                      />
+                      <Bar
+                        dataKey="count"
+                        radius={[0, 6, 6, 0]}
+                        animationBegin={0}
+                        animationDuration={800}
+                      >
+                        {categoryChartData.map((entry, i) => (
+                          <Cell key={i} fill={entry.fill} fillOpacity={0.85} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Inline legend */}
+                <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-3">
+                  {categoryChartData.map((entry) => (
+                    <div key={entry.name} className="flex items-center gap-1.5">
+                      <span
+                        className="w-2.5 h-2.5 rounded-sm shrink-0"
+                        style={{ background: entry.fill }}
+                      />
+                      <span className="text-[11px] text-gray-600 font-medium">
+                        {entry.name}{" "}
+                        <span className="text-gray-400">({entry.count})</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── 7-Day Trend — Area Line Chart ── */}
+        {hasTrendData && (
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                7-Day Trend
+              </h4>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-[3px] rounded-full bg-blue-500" />
+                  <span className="text-[11px] text-gray-500 font-medium">
+                    Reported
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-[3px] rounded-full bg-emerald-500" />
+                  <span className="text-[11px] text-gray-500 font-medium">
+                    Resolved
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div style={{ height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={trendData}
+                  margin={{ top: 8, right: 8, bottom: 0, left: -20 }}
+                >
+                  <defs>
+                    <linearGradient
+                      id="gradReported"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="#3b82f6"
+                        stopOpacity={0.25}
+                      />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient
+                      id="gradResolved"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="#10b981"
+                        stopOpacity={0.25}
+                      />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#f1f5f9"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: "#9ca3af" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={8}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 10, fill: "#9ca3af" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "rgba(255,255,255,0.95)",
+                      backdropFilter: "blur(8px)",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "12px",
+                      boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                      padding: "8px 14px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                    }}
+                    itemStyle={{ padding: "2px 0" }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Reported"
+                    stroke="#3b82f6"
+                    strokeWidth={2.5}
+                    fill="url(#gradReported)"
+                    dot={{ r: 3, fill: "#3b82f6", strokeWidth: 0 }}
+                    activeDot={{
+                      r: 5,
+                      fill: "#3b82f6",
+                      stroke: "#fff",
+                      strokeWidth: 2,
+                    }}
+                    animationBegin={0}
+                    animationDuration={900}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Resolved"
+                    stroke="#10b981"
+                    strokeWidth={2.5}
+                    fill="url(#gradResolved)"
+                    dot={{ r: 3, fill: "#10b981", strokeWidth: 0 }}
+                    activeDot={{
+                      r: 5,
+                      fill: "#10b981",
+                      stroke: "#fff",
+                      strokeWidth: 2,
+                    }}
+                    animationBegin={0}
+                    animationDuration={900}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         {/* ── Filter tabs ── */}
         <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
