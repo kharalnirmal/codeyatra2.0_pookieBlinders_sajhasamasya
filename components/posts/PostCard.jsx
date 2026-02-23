@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import PostActionsMenu from "@/components/posts/PostActionsMenu";
@@ -15,80 +15,46 @@ import {
   Send,
   ChevronDown,
   ChevronUp,
-  Hand,
-  Share2,
-  Shield,
+  Zap,
 } from "lucide-react";
 import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 import { useTranslation } from "@/lib/hooks/useTranslation";
-import { toast } from "sonner";
 
+/* ─── palette ──────────────────────────────────────────────────────────── */
 const CATEGORY_STYLES = {
-  road: {
-    bg: "bg-orange-50",
-    text: "text-orange-600",
-    border: "border-orange-200",
-    dot: "bg-orange-400",
-  },
-  water: {
-    bg: "bg-blue-50",
-    text: "text-blue-600",
-    border: "border-blue-200",
-    dot: "bg-blue-400",
-  },
-  electricity: {
-    bg: "bg-amber-50",
-    text: "text-amber-600",
-    border: "border-amber-200",
-    dot: "bg-amber-400",
-  },
-  garbage: {
-    bg: "bg-emerald-50",
-    text: "text-emerald-600",
-    border: "border-emerald-200",
-    dot: "bg-emerald-400",
-  },
-  safety: {
-    bg: "bg-red-50",
-    text: "text-red-600",
-    border: "border-red-200",
-    dot: "bg-red-400",
-  },
-  other: {
-    bg: "bg-slate-50",
-    text: "text-slate-500",
-    border: "border-slate-200",
-    dot: "bg-slate-400",
-  },
+  road:        { pill: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",    dot: "bg-amber-400" },
+  water:       { pill: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",          dot: "bg-sky-400" },
+  electricity: { pill: "bg-yellow-50 text-yellow-700 ring-1 ring-yellow-200", dot: "bg-yellow-400" },
+  garbage:     { pill: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200", dot: "bg-emerald-400" },
+  safety:      { pill: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",       dot: "bg-rose-400" },
+  other:       { pill: "bg-slate-50 text-slate-500 ring-1 ring-slate-200",    dot: "bg-slate-400" },
 };
 
 const STATUS_INFO = {
   pending: {
     label: "Pending",
     icon: Clock,
-    color: "text-amber-600",
-    bg: "bg-amber-50",
-    border: "border-amber-200",
+    style: "bg-amber-50 text-amber-600 ring-1 ring-amber-200",
+    glow: "shadow-amber-100",
     spin: false,
   },
   in_progress: {
     label: "In Progress",
     icon: Loader2,
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
+    style: "bg-blue-50 text-blue-600 ring-1 ring-blue-200",
+    glow: "shadow-blue-100",
     spin: true,
   },
   completed: {
     label: "Resolved",
     icon: CheckCircle,
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
-    border: "border-emerald-200",
+    style: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200",
+    glow: "shadow-emerald-100",
     spin: false,
   },
 };
 
+/* ─── helpers ───────────────────────────────────────────────────────────── */
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -99,47 +65,86 @@ function timeAgo(dateStr) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+/* ─── Avatar ────────────────────────────────────────────────────────────── */
+function Avatar({ src, name, size = 8 }) {
+  const s = `w-${size} h-${size}`;
+  if (src)
+    return (
+      <Image
+        src={src}
+        alt={name}
+        width={size * 4}
+        height={size * 4}
+        className={`${s} rounded-full object-cover ring-2 ring-white shadow-sm shrink-0`}
+      />
+    );
+  return (
+    <div
+      className={`${s} rounded-full shrink-0 flex items-center justify-center
+        bg-gradient-to-br from-slate-600 to-slate-800 text-white font-semibold
+        text-xs ring-2 ring-white shadow-sm`}
+    >
+      {name?.[0]?.toUpperCase()}
+    </div>
+  );
+}
+
+/* ─── Comment ───────────────────────────────────────────────────────────── */
+function Comment({ c, index }) {
+  return (
+    <div
+      className="flex items-start gap-2.5 animate-fade-up"
+      style={{ animationDelay: `${index * 60}ms`, animationFillMode: "both" }}
+    >
+      <Avatar src={c.author?.avatar} name={c.author?.name} size={7} />
+      <div className="flex-1 min-w-0">
+        <div className="bg-slate-50 rounded-2xl rounded-tl-sm px-3.5 py-2.5 border border-slate-100">
+          <p className="text-[11px] font-semibold text-slate-500 mb-0.5 tracking-wide uppercase">
+            {c.author?.name}
+          </p>
+          <p className="text-slate-700 text-sm leading-relaxed">{c.text}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── PostCard ──────────────────────────────────────────────────────────── */
 export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
   const { user, isSignedIn } = useUser();
   const { t } = useTranslation();
 
-  const isAuthor = isSignedIn && user && post.author?.clerkId === user.id;
+  const isAuthor    = isSignedIn && user && post.author?.clerkId === user.id;
   const isAuthority = isSignedIn && user?.publicMetadata?.role === "authority";
-  const canManagePost = isAuthor || isAuthority;
+  const canManage   = isAuthor || isAuthority;
 
-  // Like state
+  /* like state */
   const [likeCount, setLikeCount] = useState(post.likes?.length || 0);
-  const [liked, setLiked] = useState(false);
-  const [liking, setLiking] = useState(false);
+  const [liked,     setLiked]     = useState(false);
+  const [liking,    setLiking]    = useState(false);
+  const [likePop,   setLikePop]   = useState(false);
 
-  // Volunteer state
-  const [volunteerCount, setVolunteerCount] = useState(
-    post.volunteers?.length || 0,
-  );
-  const [volunteered, setVolunteered] = useState(false);
-  const [volunteering, setVolunteering] = useState(false);
+  /* comment state */
+  const [commentOpen,      setCommentOpen]      = useState(false);
+  const [comments,         setComments]         = useState([]);
+  const [commentsLoaded,   setCommentsLoaded]   = useState(false);
+  const [loadingComments,  setLoadingComments]  = useState(false);
+  const [commentText,      setCommentText]      = useState("");
+  const [submittingComment,setSubmittingComment]= useState(false);
 
-  // Comment state
-  const [commentOpen, setCommentOpen] = useState(false);
-  const [comments, setComments] = useState([]);
-  const [commentsLoaded, setCommentsLoaded] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const [submittingComment, setSubmittingComment] = useState(false);
+  const inputRef = useRef(null);
 
-  // Image expanded
-  const [imgExpanded, setImgExpanded] = useState(false);
-
+  /* ── handlers ── */
   const handleLike = async () => {
     if (!isSignedIn || liking) return;
     const wasLiked = liked;
     setLiked(!wasLiked);
     setLikeCount((c) => (wasLiked ? c - 1 : c + 1));
+    setLikePop(true);
+    setTimeout(() => setLikePop(false), 400);
     setLiking(true);
     try {
-      const res = await fetch(`/api/posts/${post._id}/like`, {
-        method: "POST",
-      });
+      const res  = await fetch(`/api/posts/${post._id}/like`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error();
       setLiked(data.liked);
@@ -152,52 +157,9 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
     }
   };
 
-  const handleVolunteer = async () => {
-    if (!isSignedIn || volunteering) return;
-    if (post.targetGroup === "authority") {
-      toast.info("This issue is targeted to authorities only");
-      return;
-    }
-    const was = volunteered;
-    setVolunteered(!was);
-    setVolunteerCount((c) => (was ? c - 1 : c + 1));
-    setVolunteering(true);
-    try {
-      const res = await fetch(`/api/posts/${post._id}/volunteer`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error();
-      setVolunteered(data.volunteered);
-      setVolunteerCount(data.count);
-      if (data.volunteered) toast.success("You volunteered! +5 points");
-    } catch {
-      setVolunteered(was);
-      setVolunteerCount((c) => (was ? c + 1 : c - 1));
-    } finally {
-      setVolunteering(false);
-    }
-  };
-
-  const handleShare = async () => {
-    const url = `${window.location.origin}/post/${post._id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: post.title,
-          text: post.description,
-          url,
-        });
-      } catch {}
-    } else {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied!");
-    }
-  };
-
   const refreshComments = useCallback(async () => {
     try {
-      const res = await fetch(`/api/posts/${post._id}/comments`);
+      const res  = await fetch(`/api/posts/${post._id}/comments`);
       const data = await res.json();
       setComments(data.comments || []);
       setCommentsLoaded(true);
@@ -217,6 +179,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
     const next = !commentOpen;
     setCommentOpen(next);
     if (next && !commentsLoaded) loadComments();
+    if (next) setTimeout(() => inputRef.current?.focus(), 350);
   };
 
   const handleSubmitComment = async (e) => {
@@ -224,7 +187,7 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
     if (!commentText.trim() || !isSignedIn || submittingComment) return;
     setSubmittingComment(true);
     try {
-      const res = await fetch(`/api/posts/${post._id}/comments`, {
+      const res  = await fetch(`/api/posts/${post._id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: commentText.trim() }),
@@ -239,337 +202,288 @@ export default function PostCard({ post, onPostUpdated, onPostDeleted }) {
     }
   };
 
-  const status = STATUS_INFO[post.samasyaStatus] || STATUS_INFO.pending;
+  const status      = STATUS_INFO[post.samasyaStatus] || STATUS_INFO.pending;
+  const StatusIcon  = status.icon;
+  const catStyle    = CATEGORY_STYLES[post.category] || CATEGORY_STYLES.other;
+  const authorName  = post.author?.name || "Anonymous";
+  const authorAvatar= post.author?.avatar || null;
+
   const statusLabels = {
-    pending: t("post.pending"),
+    pending:     t("post.pending"),
     in_progress: t("post.inProgress"),
-    completed: t("post.resolved"),
+    completed:   t("post.resolved"),
   };
   const statusLabel = statusLabels[post.samasyaStatus] || t("post.pending");
-  const StatusIcon = status.icon;
-
-  const authorName = post.author?.name || "Anonymous";
-  const authorAvatar = post.author?.avatar || null;
-  const catStyle = CATEGORY_STYLES[post.category] || CATEGORY_STYLES.other;
-
-  const showVolunteerBtn =
-    post.targetGroup === "volunteer" || post.targetGroup === "both";
 
   return (
-    <article className="bg-white border border-slate-100 rounded-xl overflow-hidden transition-all hover:shadow-md hover:shadow-slate-100 duration-300">
-      {/* ── Photo ── */}
-      {post.photo && (
-        <div
-          className="relative bg-slate-100 w-full cursor-pointer overflow-hidden"
-          style={{
-            aspectRatio: imgExpanded ? "auto" : "2/1",
-            maxHeight: imgExpanded ? 500 : 200,
-          }}
-          onClick={() => setImgExpanded(!imgExpanded)}
-        >
-          <Image
-            src={post.photo}
-            alt={post.title}
-            fill
-            className={`object-cover transition-transform duration-500 ${imgExpanded ? "scale-100" : "hover:scale-105"}`}
-            sizes="(max-width: 640px) 100vw, 640px"
-          />
-          {/* Status overlay */}
-          <div className="absolute top-3 left-3 flex gap-1.5">
+    <>
+      {/* ── keyframe styles injected once ── */}
+      <style>{`
+        @keyframes fade-up {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slide-down {
+          from { opacity: 0; max-height: 0; transform: translateY(-6px); }
+          to   { opacity: 1; max-height: 800px; transform: translateY(0); }
+        }
+        @keyframes pop {
+          0%   { transform: scale(1); }
+          40%  { transform: scale(1.32); }
+          70%  { transform: scale(0.9); }
+          100% { transform: scale(1); }
+        }
+        @keyframes shimmer {
+          0%   { background-position: -400px 0; }
+          100% { background-position: 400px 0; }
+        }
+        .animate-fade-up  { animation: fade-up 0.35s ease both; }
+        .animate-slide-down{ animation: slide-down 0.35s cubic-bezier(.4,0,.2,1) both; }
+        .animate-pop      { animation: pop 0.38s cubic-bezier(.4,0,.2,1); }
+      `}</style>
+
+      <article
+        className="group relative bg-white border border-slate-100 rounded-3xl overflow-hidden
+          shadow-sm hover:shadow-xl hover:shadow-slate-200/80
+          transition-all duration-500 ease-out
+          hover:-translate-y-0.5"
+      >
+        {/* ── Photo with gradient veil ── */}
+        {post.photo && (
+          <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/9" }}>
+            <Image
+              src={post.photo}
+              alt={post.title}
+              fill
+              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+              sizes="(max-width: 640px) 100vw, 640px"
+            />
+            {/* gradient veil */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+            {/* status badge floating on image */}
             <span
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold backdrop-blur-md ${status.bg}/80 ${status.color} border ${status.border}`}
+              className={`absolute bottom-3 right-3 flex items-center gap-1.5 px-2.5 py-1
+                rounded-full text-[11px] font-semibold backdrop-blur-md
+                bg-white/80 shadow-lg border border-white/60 ${status.style}`}
             >
-              <StatusIcon
-                className={`w-3 h-3 ${status.spin ? "animate-spin" : ""}`}
-              />
+              <StatusIcon className={`w-3 h-3 ${status.spin ? "animate-spin" : ""}`} />
               {statusLabel}
             </span>
           </div>
-          {/* Category overlay */}
-          <div className="absolute top-3 right-3">
-            <span
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize backdrop-blur-md ${catStyle.bg}/80 ${catStyle.text} border ${catStyle.border}`}
-            >
+        )}
+
+        <div className="p-5 space-y-4">
+
+          {/* ── Header ── */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="relative shrink-0">
+                <Avatar src={authorAvatar} name={authorName} size={9} />
+                {/* online-style ring pulse when post is recent */}
+                {Date.now() - new Date(post.createdAt).getTime() < 3600000 && (
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-white" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-800 text-sm truncate leading-tight">
+                  {authorName}
+                </p>
+                <p className="text-slate-400 text-xs mt-0.5 flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {timeAgo(post.createdAt)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {canManage && (
+                <PostActionsMenu
+                  post={post}
+                  onUpdated={onPostUpdated}
+                  onDeleted={onPostDeleted}
+                />
+              )}
+              {/* Status badge (only shown here if no photo) */}
+              {!post.photo && (
+                <span
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                    text-[11px] font-semibold ${status.style} shadow-sm`}
+                >
+                  <StatusIcon className={`w-3 h-3 ${status.spin ? "animate-spin" : ""}`} />
+                  {statusLabel}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* ── Title & description ── */}
+          <div>
+            <h3 className="font-bold text-slate-900 text-base leading-snug tracking-tight">
+              {post.title}
+            </h3>
+            <p className="mt-1.5 text-slate-500 text-sm leading-relaxed line-clamp-2">
+              {post.description}
+            </p>
+          </div>
+
+          {/* ── Tags ── */}
+          <div className="flex flex-wrap gap-2">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium capitalize ${catStyle.pill}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${catStyle.dot}`} />
               {post.category}
             </span>
-          </div>
-        </div>
-      )}
-
-      <div className="p-4 space-y-3">
-        {/* ── Header row ── */}
-        <div className="flex justify-between items-start gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            {authorAvatar ? (
-              <Image
-                src={authorAvatar}
-                alt={authorName}
-                width={36}
-                height={36}
-                className="rounded-full border border-slate-200 object-cover shrink-0"
-              />
-            ) : (
-              <div className="flex justify-center items-center bg-gradient-to-br from-green-400 to-emerald-600 rounded-full w-9 h-9 font-bold text-white text-sm shrink-0">
-                {authorName[0]?.toUpperCase()}
-              </div>
-            )}
-            <div className="min-w-0">
-              <p className="font-semibold text-slate-800 text-sm truncate">
-                {authorName}
-              </p>
-              <p className="text-slate-400 text-[11px]">
-                {timeAgo(post.createdAt)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Target group badge */}
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-50 text-slate-500 border border-slate-200">
-              {post.targetGroup === "authority" && (
-                <Shield className="w-3 h-3" />
-              )}
-              {post.targetGroup === "volunteer" && (
-                <Users className="w-3 h-3" />
-              )}
-              {post.targetGroup === "both" && <Users className="w-3 h-3" />}
-              {post.targetGroup === "both"
-                ? t("post.targetBoth")
-                : post.targetGroup === "authority"
-                  ? t("post.targetAuthority")
-                  : t("post.targetVolunteer")}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
+              bg-slate-50 text-slate-500 ring-1 ring-slate-200 capitalize">
+              <Users className="w-3 h-3" />
+              {post.targetGroup === "both" ? t("post.authorityVolunteer") : post.targetGroup}
             </span>
-
-            {/* No photo? Show status/category inline */}
-            {!post.photo && (
-              <>
-                <span
-                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${status.bg} ${status.color} border ${status.border}`}
-                >
-                  <StatusIcon
-                    className={`w-3 h-3 ${status.spin ? "animate-spin" : ""}`}
-                  />
-                  {statusLabel}
-                </span>
-                <span
-                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize ${catStyle.bg} ${catStyle.text} border ${catStyle.border}`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${catStyle.dot}`}
-                  />
-                  {post.category}
-                </span>
-              </>
-            )}
-
-            {canManagePost && (
-              <PostActionsMenu
-                post={post}
-                onUpdated={onPostUpdated}
-                onDeleted={onPostDeleted}
-              />
-            )}
           </div>
-        </div>
 
-        {/* ── Title & description ── */}
-        <div>
-          <h3 className="font-semibold text-slate-800 text-[15px] leading-snug">
-            {post.title}
-          </h3>
-          <p className="mt-1 text-slate-500 text-sm leading-relaxed line-clamp-2">
-            {post.description}
-          </p>
-        </div>
-
-        {/* ── Location ── */}
-        {post.location?.address && (
-          <div className="flex items-center gap-1.5 text-slate-400 text-xs">
-            <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-300" />
-            <span className="truncate">{post.location.address}</span>
-          </div>
-        )}
-
-        {/* ── Authority response ── */}
-        {post.authorityResponse && (
-          <div className="bg-indigo-50 px-3 py-2.5 border border-indigo-100 rounded-lg">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Shield className="w-3 h-3 text-indigo-500" />
-              <span className="text-indigo-600 text-[10px] font-bold uppercase tracking-wider">
-                {t("post.authority")}
-              </span>
+          {/* ── Location ── */}
+          {post.location?.address && (
+            <div className="flex items-center gap-1.5 text-slate-400 text-xs">
+              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100">
+                <MapPin className="w-3 h-3 text-slate-500" />
+              </div>
+              <span className="truncate">{post.location.address}</span>
             </div>
-            <p className="text-indigo-700 text-xs leading-relaxed">
-              {post.authorityResponse}
-            </p>
-          </div>
-        )}
+          )}
 
-        {/* ── Volunteer CTA ── */}
-        {showVolunteerBtn && post.samasyaStatus !== "completed" && (
-          <button
-            onClick={handleVolunteer}
-            disabled={!isSignedIn || volunteering}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
-              volunteered
-                ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
-                : "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-sm shadow-emerald-200 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98]"
-            } disabled:opacity-50`}
-          >
-            {volunteering ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : volunteered ? (
-              <CheckCircle className="w-4 h-4" />
-            ) : (
-              <Hand className="w-4 h-4" />
-            )}
-            {volunteered ? t("post.volunteered") : t("post.volunteer")}
-            {volunteerCount > 0 && (
-              <span
-                className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${volunteered ? "bg-emerald-100 text-emerald-700" : "bg-white/20 text-white"}`}
-              >
-                {volunteerCount}
-              </span>
-            )}
-          </button>
-        )}
+          {/* ── Authority response ── */}
+          {post.authorityResponse && (
+            <div className="relative overflow-hidden bg-gradient-to-r from-blue-50 to-indigo-50
+              border border-blue-100 rounded-2xl px-4 py-3">
+              {/* decorative bar */}
+              <div className="absolute left-0 inset-y-0 w-1 bg-gradient-to-b from-blue-400 to-indigo-500 rounded-full" />
+              <p className="text-blue-700 text-xs leading-relaxed pl-2">
+                <span className="font-bold uppercase tracking-wide text-blue-500 text-[10px]">
+                  {t("post.authority")} ·
+                </span>{" "}
+                {post.authorityResponse}
+              </p>
+            </div>
+          )}
 
-        {/* ── Action bar ── */}
-        <div className="flex items-center pt-2 border-t border-slate-100">
-          {/* Like */}
-          <button
-            onClick={handleLike}
-            disabled={!isSignedIn || liking}
-            className={`flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-2 transition-all duration-200 ${
-              liked
-                ? "text-green-600 bg-green-50"
-                : "text-slate-400 hover:text-green-600 hover:bg-green-50"
-            } disabled:opacity-40`}
-          >
-            <ThumbsUp className={`w-4 h-4 ${liked ? "fill-green-600" : ""}`} />
-            <span>{likeCount}</span>
-          </button>
+          {/* ── Divider ── */}
+          <div className="h-px bg-gradient-to-r from-transparent via-slate-100 to-transparent" />
 
-          {/* Comments */}
-          <button
-            onClick={toggleComments}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-              commentOpen
-                ? "text-blue-600 bg-blue-50"
-                : "text-slate-400 hover:text-blue-600 hover:bg-blue-50"
-            }`}
-          >
-            <MessageSquare className="w-4 h-4" />
-            {commentsLoaded && comments.length > 0 && (
-              <span>{comments.length}</span>
-            )}
-            {commentOpen ? (
-              <ChevronUp className="w-3 h-3" />
-            ) : (
-              <ChevronDown className="w-3 h-3" />
-            )}
-          </button>
+          {/* ── Action row ── */}
+          <div className="flex items-center gap-1">
 
-          {/* Share */}
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all duration-200"
-          >
-            <Share2 className="w-4 h-4" />
-          </button>
+            {/* Like */}
+            <button
+              onClick={handleLike}
+              disabled={!isSignedIn || liking}
+              className={`group/like flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-semibold
+                transition-all duration-200 ease-out disabled:opacity-40 select-none
+                ${liked
+                  ? "bg-rose-50 text-rose-500 ring-1 ring-rose-200 hover:bg-rose-100"
+                  : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                }`}
+            >
+              <ThumbsUp
+                className={`w-4 h-4 transition-all duration-200
+                  ${liked ? "fill-rose-500 text-rose-500" : ""}
+                  ${likePop ? "animate-pop" : "group-hover/like:scale-110"}`}
+              />
+              <span className="tabular-nums">{likeCount}</span>
+            </button>
 
-          {/* Spacer + volunteer count (if not showing CTA) */}
-          <div className="flex items-center gap-1.5 ml-auto text-slate-400 text-xs">
-            {(!showVolunteerBtn || post.samasyaStatus === "completed") &&
-              volunteerCount > 0 && (
-                <>
-                  <Users className="w-3.5 h-3.5" />
-                  <span>{volunteerCount}</span>
-                </>
+            {/* Comment toggle */}
+            <button
+              onClick={toggleComments}
+              className={`flex items-center gap-2 px-3 py-2 rounded-2xl text-xs font-semibold
+                transition-all duration-200 ease-out select-none
+                ${commentOpen
+                  ? "bg-slate-100 text-slate-700"
+                  : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                }`}
+            >
+              <MessageSquare className="w-4 h-4" />
+              {commentsLoaded && comments.length > 0 && (
+                <span className="tabular-nums">{comments.length}</span>
               )}
+              {commentOpen
+                ? <ChevronUp  className="w-3.5 h-3.5 transition-transform duration-200" />
+                : <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" />
+              }
+            </button>
+
+            {/* Volunteers */}
+            <div className="flex items-center gap-1.5 ml-auto px-2.5 py-1.5 rounded-xl
+              bg-slate-50 text-slate-400 text-xs font-medium">
+              <Users className="w-3.5 h-3.5" />
+              <span className="tabular-nums">{post.volunteers?.length || 0}</span>
+            </div>
           </div>
-        </div>
 
-        {/* ── Comments section ── */}
-        {commentOpen && (
-          <div className="space-y-2.5 pt-2 border-t border-slate-100">
-            {loadingComments && (
-              <div className="flex justify-center py-3">
-                <Loader2 className="w-4 h-4 text-slate-300 animate-spin" />
-              </div>
-            )}
+          {/* ── Comments ── */}
+          {commentOpen && (
+            <div className="animate-slide-down space-y-3 pt-1 overflow-hidden">
 
-            {!loadingComments && comments.length === 0 && (
-              <p className="py-2 text-slate-400 text-xs text-center">
-                {t("post.noComments")}
-              </p>
-            )}
-
-            {comments.map((c) => (
-              <div key={c._id} className="flex items-start gap-2">
-                {c.author?.avatar ? (
-                  <Image
-                    src={c.author.avatar}
-                    alt={c.author.name}
-                    width={24}
-                    height={24}
-                    className="mt-0.5 rounded-full object-cover shrink-0"
-                  />
-                ) : (
-                  <div className="flex justify-center items-center bg-slate-200 mt-0.5 rounded-full w-6 h-6 font-bold text-[10px] text-slate-500 shrink-0">
-                    {c.author?.name?.[0]?.toUpperCase()}
-                  </div>
-                )}
-                <div className="flex-1 bg-slate-50 px-3 py-2 rounded-lg min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-slate-700 text-xs">
-                      {c.author?.name}
-                    </p>
-                    <p className="text-[10px] text-slate-400">
-                      {c.createdAt ? timeAgo(c.createdAt) : ""}
-                    </p>
-                  </div>
-                  <p className="mt-0.5 text-slate-600 text-sm leading-snug">
-                    {c.text}
-                  </p>
+              {/* loading */}
+              {loadingComments && (
+                <div className="flex items-center justify-center gap-2 py-4 text-slate-300">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-xs">Loading…</span>
                 </div>
-              </div>
-            ))}
+              )}
 
-            {isSignedIn ? (
-              <form
-                onSubmit={handleSubmitComment}
-                className="flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder={t("post.writeComment")}
-                  maxLength={500}
-                  className="flex-1 bg-slate-50 px-3 py-2 border border-slate-200 focus:border-green-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-100 text-sm transition"
-                />
-                <button
-                  type="submit"
-                  disabled={!commentText.trim() || submittingComment}
-                  className="flex justify-center items-center bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:opacity-40 rounded-lg w-9 h-9 text-white transition shrink-0"
+              {/* empty */}
+              {!loadingComments && comments.length === 0 && (
+                <div className="flex flex-col items-center gap-1 py-5 text-slate-300">
+                  <MessageSquare className="w-6 h-6" />
+                  <p className="text-xs">{t("post.noComments")}</p>
+                </div>
+              )}
+
+              {/* list */}
+              {comments.map((c, i) => (
+                <Comment key={c._id} c={c} index={i} />
+              ))}
+
+              {/* input */}
+              {isSignedIn ? (
+                <form
+                  onSubmit={handleSubmitComment}
+                  className="flex items-center gap-2 pt-1"
                 >
-                  {submittingComment ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </button>
-              </form>
-            ) : (
-              <p className="py-1 text-slate-400 text-xs text-center">
-                {t("post.signInComment")}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-    </article>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder={t("post.writeComment")}
+                    maxLength={500}
+                    className="flex-1 bg-slate-50 border border-slate-200 text-sm text-slate-800
+                      placeholder-slate-400 px-4 py-2.5 rounded-2xl
+                      focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-300
+                      transition-all duration-200"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!commentText.trim() || submittingComment}
+                    className="flex items-center justify-center w-10 h-10 rounded-2xl shrink-0
+                      bg-slate-800 hover:bg-slate-700 disabled:opacity-40
+                      text-white shadow-sm hover:shadow-md
+                      transition-all duration-200 active:scale-95"
+                  >
+                    {submittingComment
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Send className="w-4 h-4" />
+                    }
+                  </button>
+                </form>
+              ) : (
+                <p className="text-center text-xs text-slate-400 py-2">
+                  {t("post.signInComment")}
+                </p>
+              )}
+            </div>
+          )}
+
+        </div>
+      </article>
+    </>
   );
 }
