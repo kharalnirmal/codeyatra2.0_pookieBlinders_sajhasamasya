@@ -147,13 +147,14 @@ export default function Loader({ onComplete }) {
           style={{ textAlign: "center", marginBottom: "10px" }}
         >
           <span
+            className="pl-2"
             style={{
               fontFamily: "'Playfair Display', serif",
               fontSize: "clamp(20px, 5vw, 32px)",
               fontWeight: 600,
               letterSpacing: "6px",
               textTransform: "uppercase",
-              color: "#1a1a1a",
+              color: "#66a85e",
             }}
           >
             Sajha
